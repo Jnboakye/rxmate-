@@ -8,6 +8,8 @@ import wrongquestions from "@/assets/wrongquestion.svg";
 import correctanswer from "@/assets/correctanswer.svg";
 import rightcardcomment from "@/assets/rightcardcomment.svg";
 import leftcardcomment from "@/assets/leftcardcomment.svg";
+import leftcurl from "@/assets/leftcurl.svg";
+import rightcurl from "@/assets/rightcurl.svg";
 
 const Hero = () => {
   return (
@@ -36,20 +38,20 @@ const Hero = () => {
           </div>
 
           {/* Images Section */}
-          <div className="mt-20 flex flex-col items-center gap-10 md:flex-row md:justify-center md:gap-14">
+          <div className="mt-20 flex flex-row items-center gap-10">
             {/* Left Card */}
-            <div className="flex flex-col gap-6">
-              <div className="w-full max-w-xs"> 
-                <Image src={leftcardcomment} alt="right card comment" /> {/* remove the images and build them */}
+            <div className="flex flex-col gap-3 ">
+              <div className="w-384.89px h-43.89px">
+                <Image src={leftcardcomment} alt="left card comment" />
               </div>
 
-              <div className="w-full max-w-xs">
+              <div className="w-[359px] h-[270px]">
                 <Image
                   src={wrongquestions}
                   alt="Wrongly Answered Question"
-                  width={300}
-                  height={300}
-                  className="w-full h-auto"
+                  width={335}
+                  height={238}
+                  className="w-full h-full object-contain"
                 />
               </div>
             </div>
@@ -60,30 +62,31 @@ const Hero = () => {
                 src={phoneimage}
                 alt="App Preview"
                 width={320}
-                height={640}
-                className="w-full h-auto"
+                height={673}
+                className="w-full h-auto object-contain"
               />
             </div>
 
             {/* Right Card */}
-            <div className="flex flex-col gap-6">
-              <div className="w-full max-w-xs">
-                <Image src={rightcardcomment} alt="left card comment" /> {/* remove the images and build them */}
-              </div>
+            <div className="flex flex-col  mt-13">
+                <div className="w-342.89px h-43.89px">
+                  <Image src={rightcardcomment} alt="Right card comment" />
+                </div>
 
-              <div className="w-full max-w-xs">
-                <Image
-                  src={correctanswer}
-                  alt="Correct Answer Card"
-                  width={300}
-                  height={300}
-                  className="w-full h-auto"
-                />
-              </div>
+                <div className="w-[311px] h-[337px]">
+                  <Image
+                    src={correctanswer}
+                    alt="Correct Answer Card"
+                    width={279}
+                    height={305}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
             </div>
           </div>
         </div>
       </Wrapper>
+        
     </section>
   );
 };
