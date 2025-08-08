@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import Wrapper from "../shared/wrapper";
+import Wrapper from "../../shared/wrapper";
 import Image from "next/image";
 import phoneimage from "@/assets/phonemockup.svg";
 import card1 from "@/assets/card1.svg";
@@ -11,7 +11,7 @@ import card3 from "@/assets/card3.svg";
 export default function Features() {
   return (
     <Wrapper>
-      <div className="w-full bg-white py-16 px-4 md:px-12 font-openSauce">
+      <div className="w-full bg-white py-16 px-4 md:px-12 font-openSauce hidden md:block">
         <div className="max-w-7xl mx-auto text-center">
           <h2 className="text-[40px] md:text-4xl font-bold mb-15">
             Discover Features Built for Efficient Learning

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import Wrapper from "../shared/wrapper";
+import Wrapper from "../../shared/wrapper";
 import Image from "next/image";
 import phoneimage from "@/assets/phoneimage.svg";
 import wrongquestions from "@/assets/wrongquestion.svg";
@@ -13,7 +13,7 @@ import rightcurl from "@/assets/rightcurl.svg";
 
 const Hero = () => {
   return (
-    <section className="pt-16 pb-24 bg-white font-openSauce">
+    <section className="pt-16 pb-24 bg-white font-openSauce hidden md:block">
       <Wrapper>
         <div className="w-[1249px] h-[688px] mx-auto rounded-[36px]">
           {/* Headline + Button */}

@@ -1,9 +1,8 @@
-// app/contact-us/page.tsx or pages/contact-us.tsx
 'use client'
 
 export default function ContactUs() {
   return (
-    <main className="min-h-screen bg-white px-4 py-20">
+    <main className="min-h-screen bg-white px-4 py-20 hidden md:block">
       <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-8">
         {/* Contact Form */}
         <div className="rounded-2xl border p-8 space-y-6 shadow-sm">

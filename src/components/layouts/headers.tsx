@@ -1,3 +1,5 @@
+// (Desktop only)
+
 "use client";
 
 import React from "react";
@@ -8,7 +10,7 @@ import appleicon from "@/assets/appleicon.svg";
 
 const Header = () => {
   return (
-    <header className="py-6">
+    <header className="hidden md:block py-6">
       <Wrapper>
         <div className="flex items-center justify-between font-openSauce ">
 
