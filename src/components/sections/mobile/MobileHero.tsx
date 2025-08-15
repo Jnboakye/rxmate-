@@ -1,7 +1,6 @@
-import Image from 'next/image';
+import Image from "next/image";
 import phoneimage from "@/assets/phoneimage.svg";
-
-
+import Link from "next/link";
 
 export default function MobileHero() {
   return (
@@ -11,14 +10,17 @@ export default function MobileHero() {
         {/* Hero Text */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-8">
-            Your All-in-One GPPQE<br />
+            Your All-in-One GPPQE
+            <br />
             Prep: Practice Questions +<br />
             Expert Summaries
           </h1>
-          
-          <button className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-full font-semibold text-lg transition-colors ">
-            Subscribe
-          </button>
+
+          <Link href="/checkoutform">
+            <button className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-full font-semibold text-lg transition-colors ">
+              Subscribe
+            </button>
+          </Link>
         </div>
 
         {/* Phone Mockup */}

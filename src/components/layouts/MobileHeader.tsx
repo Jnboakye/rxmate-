@@ -4,6 +4,8 @@
 "use client";
 import React from "react";
 import Wrapper from "../shared/wrapper";
+import Link from "next/link";
+
 
 const MobileHeader = () => {
   return (
@@ -16,9 +18,12 @@ const MobileHeader = () => {
           </div>
 
           {/* Subscribe Button */}
+          <Link href="/checkoutform">
           <button className="bg-[#8B5CF6] hover:bg-[#7a7fda] text-white px-6 py-2 rounded-full text-sm font-medium transition-colors">
             Subscribe
           </button>
+          </Link>
+          
         </div>
       </Wrapper>
     </header>

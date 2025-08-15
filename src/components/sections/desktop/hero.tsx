@@ -2,12 +2,14 @@
 
 import React from "react";
 import Wrapper from "../../shared/wrapper";
+import Link from "next/link";
 import Image from "next/image";
 import phoneimage from "@/assets/phoneimage.svg";
 import wrongquestions from "@/assets/wrongquestion.svg";
 import correctanswer from "@/assets/correctanswer.svg";
 import rightcardcomment from "@/assets/rightcardcomment.svg";
 import leftcardcomment from "@/assets/leftcardcomment.svg";
+
 import leftcurl from "@/assets/leftcurl.svg";
 import rightcurl from "@/assets/rightcurl.svg";
 
@@ -29,11 +31,13 @@ const Hero = () => {
             </h1>
 
             <div className="mt-8">
-              <button className="bg-[#1C76FD] text-white w-[269px] h-[50px] px-[12px] py-[12px] rounded-[24px] font-medium hover:bg-blue-700 transition">
-                <span className="w-[82px] h-[20px] text-[16px] leading-[20px] text-center">
-                  Subscribe
-                </span>
-              </button>
+              <Link href="/checkoutform">
+                <button className="bg-[#1C76FD] text-white w-[269px] h-[50px] px-[12px] py-[12px] rounded-[24px] font-medium hover:bg-blue-700 transition">
+                  <span className="w-[82px] h-[20px] text-[16px] leading-[20px] text-center">
+                    Subscribe
+                  </span>
+                </button>
+              </Link>
             </div>
           </div>
 
@@ -69,24 +73,23 @@ const Hero = () => {
 
             {/* Right Card */}
             <div className="flex flex-col  mt-13">
-                <div className="w-342.89px h-43.89px">
-                  <Image src={rightcardcomment} alt="Right card comment" />
-                </div>
+              <div className="w-342.89px h-43.89px">
+                <Image src={rightcardcomment} alt="Right card comment" />
+              </div>
 
-                <div className="w-[311px] h-[337px]">
-                  <Image
-                    src={correctanswer}
-                    alt="Correct Answer Card"
-                    width={279}
-                    height={305}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
+              <div className="w-[311px] h-[337px]">
+                <Image
+                  src={correctanswer}
+                  alt="Correct Answer Card"
+                  width={279}
+                  height={305}
+                  className="w-full h-full object-contain"
+                />
+              </div>
             </div>
           </div>
         </div>
       </Wrapper>
-        
     </section>
   );
 };
