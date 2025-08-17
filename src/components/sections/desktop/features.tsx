@@ -33,7 +33,7 @@ export default function Features() {
             <div className="flex-1 space-y-8 text-left">
               <p className="text-gray-600 text-lg">
                 With personalized quizzes, instant feedback, and detailed
-                explanations, you'll identify your strengths, improve on your
+                explanations, you&apos;ll identify your strengths, improve on your
                 weaknesses, and track your progress over time.
               </p>
 

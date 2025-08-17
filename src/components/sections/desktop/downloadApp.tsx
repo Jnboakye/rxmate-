@@ -54,7 +54,7 @@ const AppContinuationScreen = () => {
           {/* Download Section */}
           <div>
             <p className="text-gray-800 mb-6 leading-relaxed">
-              Incase you don't have the app, Click on the button to download now
+              Incase you don&apos;t have the app, Click on the button to download now
             </p>
             
             <button

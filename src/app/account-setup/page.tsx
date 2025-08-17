@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, Phone } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import MobileLogo from "@/components/layouts/rxmateicon";
 
@@ -55,7 +55,7 @@ const RegistrationForm = () => {
       <div className="">
         <div className="text-left mb-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-7">
-            Let's Get You Started
+            Let&apos;s Get You Started
           </h1>
           <div className="flex items-left justify-left mb-3">
             <div className="h-1 w-25 bg-green-500 rounded-full mr-2"></div>

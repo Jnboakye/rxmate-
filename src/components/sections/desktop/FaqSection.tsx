@@ -37,7 +37,7 @@ export default function FaqSection() {
     <section className="max-w-2xl mx-auto px-4 py-16">
       <h2 className="text-3xl font-bold text-center mb-2">Your Questions, Answered</h2>
       <p className="text-center text-gray-500 mb-10">
-        We're here to help you learn how to use the Rxmate platform and answer any questions you may have.
+        We&apos;re here to help you learn how to use the Rxmate platform and answer any questions you may have.
       </p>
 
       <h3 className="text-xl font-semibold mb-4">General</h3>
