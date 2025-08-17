@@ -9,17 +9,17 @@ import Link from "next/link";
 
 const MobileHeader = () => {
   return (
-    <header className="block sm:block md:hidden lg:hidden xl:hidden py-4 bg-white">
+    <header className="block sm:block md:hidden lg:hidden xl:hidden py-6 bg-white">
       <Wrapper>
-        <div className="flex items-center justify-between font-openSauce">
+        <div className="flex items-center justify-between px-4 font-openSauce">
           {/* Rxmate Text icon */}
-          <div className="text-[#1C76FD] font-bold text-xl">
+          <div className="text-[#1C76FD] font-bold text-xl py-2">
             Rxmate
           </div>
 
           {/* Subscribe Button */}
           <Link href="/checkoutform">
-          <button className="bg-[#8B5CF6] hover:bg-[#7a7fda] text-white px-6 py-2 rounded-full text-sm font-medium transition-colors">
+          <button className="bg-[#8B5CF6] hover:bg-[#7a7fda] text-white px-8 py-3 rounded-full text-sm font-medium transition-colors">
             Subscribe
           </button>
           </Link>

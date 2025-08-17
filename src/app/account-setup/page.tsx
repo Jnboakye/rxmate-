@@ -48,29 +48,29 @@ const RegistrationForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8 font-openSauce">
        {/* Mobile Logo - Only visible on mobile devices */}
       <MobileLogo />
       
       <div className="">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+        <div className="text-left mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-7">
             Let's Get You Started
           </h1>
-          <div className="flex items-center justify-center mb-6">
-            <div className="h-1 w-16 bg-green-500 rounded-full mr-2"></div>
-            <div className="h-1 w-16 bg-green-500 rounded-full mr-2"></div>
-            <div className="h-1 w-16 bg-[#F4F4F4] rounded-full"></div>
+          <div className="flex items-left justify-left mb-3">
+            <div className="h-1 w-25 bg-green-500 rounded-full mr-2"></div>
+            <div className="h-1 w-25 bg-green-500 rounded-full mr-2"></div>
+            <div className="h-1 w-25 bg-[#F4F4F4] rounded-full"></div>
           </div>
-          <h2 className="text-lg font-semibold text-gray-800">
+          <h3 className="text-lg font-semibold text-gray-800">
             Personal Information
-          </h2>
+          </h3>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* First Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-[#00000099] mb-2">
               First Name
             </label>
             <input
@@ -84,7 +84,7 @@ const RegistrationForm = () => {
 
           {/* Last Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-[#00000099] mb-2">
               Last Name
             </label>
             <input
@@ -98,7 +98,7 @@ const RegistrationForm = () => {
 
           {/* WhatsApp Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-[#00000099] mb-2">
               WhatsApp number
             </label>
             <div className="flex">
@@ -120,7 +120,7 @@ const RegistrationForm = () => {
 
           {/* University Dropdown */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-[#00000099] mb-2">
               University
             </label>
             <div className="relative">

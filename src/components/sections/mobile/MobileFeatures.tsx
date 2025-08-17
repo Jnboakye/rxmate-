@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Wrapper from "@/components/shared/wrapper";
-import phonemockup from '@/assets/phonemockup.svg'
+import phonemockup from "@/assets/phonemockup.svg";
 
 const Features = () => {
   const [activeTab, setActiveTab] = useState("Topic Overview");
@@ -11,33 +11,36 @@ const Features = () => {
     {
       name: "Explanations",
       title: "Answer Explanations",
-      description: "Get comprehensive coverage of all GPPQE topics with structured learning.",
-      image: phonemockup
+      description:
+        "Learn from your mistakes with detailed explanations for every question.",
+      image: phonemockup,
     },
     {
       name: "Topic Overview",
       title: "Answer Explanations",
-      description: "Learn from your mistakes with detailed explanations for every question.",
-      image: phonemockup 
+      description:
+        "Quickly revise key concepts with our comprehensive topic summaries",
+      image: phonemockup,
     },
     {
       name: "Question Sets",
-      title: "Practice Question Sets",
-      description: "Access hundreds of practice questions organized by topic and difficulty.",
-      image: phonemockup 
-    }
+      title: "Configurable Question Sets",
+      description:
+        "Take control of your learning with customizable question sets.",
+      image: phonemockup,
+    },
   ];
 
-  const activeTabData = tabs.find(tab => tab.name === activeTab) || tabs[1];
+  const activeTabData = tabs.find((tab) => tab.name === activeTab) || tabs[1];
 
   const goToPrevTab = () => {
-    const currentIndex = tabs.findIndex(tab => tab.name === activeTab);
+    const currentIndex = tabs.findIndex((tab) => tab.name === activeTab);
     const prevIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
     setActiveTab(tabs[prevIndex].name);
   };
 
   const goToNextTab = () => {
-    const currentIndex = tabs.findIndex(tab => tab.name === activeTab);
+    const currentIndex = tabs.findIndex((tab) => tab.name === activeTab);
     const nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
     setActiveTab(tabs[nextIndex].name);
   };
@@ -47,21 +50,21 @@ const Features = () => {
       <Wrapper>
         <div className="text-center mb-12">
           {/* Main Title */}
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-8">
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
             Discover Our Features
           </h2>
 
           {/* Tab Navigation */}
           <div className="flex justify-center mb-8">
-            <div className="flex bg-gray-100 rounded-lg p-1 max-w-fit">
+            <div className="flex max-w-fit">
               {tabs.map((tab) => (
                 <button
                   key={tab.name}
                   onClick={() => setActiveTab(tab.name)}
-                  className={`px-6 py-3 rounded-md font-medium transition-all duration-300 ${
+                  className={`px-6 py-3 font-medium transition-all duration-300 border-b-2 ${
                     activeTab === tab.name
-                      ? "bg-white text-[#1C76FD] shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "text-[#1C76FD] border-[#1C76FD]"
+                      : "text-gray-600 hover:text-gray-900 border-transparent"
                   }`}
                 >
                   {tab.name}
@@ -76,10 +79,20 @@ const Features = () => {
           {/* Left Arrow */}
           <button
             onClick={goToPrevTab}
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 flex items-center justify-center w-12 h-12 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors shadow-lg"
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 flex items-center justify-center w-12 h-12 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors shadow-lg "
           >
-            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg
+              className="w-6 h-6 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </button>
 
@@ -88,8 +101,18 @@ const Features = () => {
             onClick={goToNextTab}
             className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 flex items-center justify-center w-12 h-12 bg-[#1C76FD] hover:bg-blue-700 rounded-full transition-colors shadow-lg"
           >
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg
+              className="w-6 h-6 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
 

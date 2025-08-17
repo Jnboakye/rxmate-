@@ -27,21 +27,21 @@ const CheckoutForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-openSauce">
       {/* Mobile Logo - Only visible on mobile devices */}
       <MobileLogo />
 
       <div className=" p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">
+        <h3 className="text-3xl font-bold text-gray-900 text-left mb-8">
           Personal Information
-        </h1>
+        </h3>
 
         <div className="space-y-6">
           {/* Email Field */}
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-[#00000099] mb-2"
             >
               Email
             </label>
@@ -60,7 +60,7 @@ const CheckoutForm = () => {
           <div>
             <label
               htmlFor="phone"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-[#00000099] mb-2"
             >
               Phone
             </label>
@@ -85,7 +85,7 @@ const CheckoutForm = () => {
           <div>
             <label
               htmlFor="cohort"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-[#00000099] mb-2"
             >
               Cohort
             </label>
@@ -129,7 +129,7 @@ const CheckoutForm = () => {
           <Link href="/account-setup">
             <button
               onClick={handleSubmit}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-4 rounded-lg transition-colors duration-200 text-lg"
+              className="w-full bg-[#1C76FD] hover:bg-blue-600 text-white font-semibold py-4 rounded-[24px] transition-colors duration-200 text-lg"
             >
               Pay GHS 1,000
             </button>
