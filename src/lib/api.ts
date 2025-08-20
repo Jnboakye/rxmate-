@@ -110,7 +110,7 @@ class ApiService {
         console.log(`Trying endpoint: ${endpoint}`);
         const response = await this.request<PaymentResponse>(endpoint, {
           method: 'POST',
-          body: checkoutData,
+          body: JSON.stringify(checkoutData),
         });
         
         console.log(`Success with endpoint: ${endpoint}`, response);
@@ -135,7 +135,7 @@ class ApiService {
   }): Promise<{ success: boolean; message: string }> {
     return this.request<{ success: boolean; message: string }>('/api/contact', {
       method: 'POST',
-      body: contactData,
+      body: JSON.stringify(contactData),
     });
   }
 
@@ -143,7 +143,7 @@ class ApiService {
   async subscribeNewsletter(email: string): Promise<{ success: boolean; message: string }> {
     return this.request<{ success: boolean; message: string }>('/api/newsletter/subscribe', {
       method: 'POST',
-      body: { email },
+      body: JSON.stringify({ email }),
     });
   }
 }
