@@ -1,3 +1,4 @@
+// src/lib/api.ts
 
 // Types for API integration
 export interface CheckoutData {
@@ -37,7 +38,7 @@ class ApiService {
     }
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit & { body?: unknown } = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
     const config: RequestInit = {
@@ -49,7 +50,8 @@ class ApiService {
       ...options,
     };
 
-    if (config.body && typeof config.body !== 'string') {
+    // Convert body to JSON string if it's an object
+    if (config.body && typeof config.body === 'object') {
       config.body = JSON.stringify(config.body);
     }
 
