@@ -1,8 +1,7 @@
 "use client";
 import React, { useState } from "react";
-import Link from "next/link";
 import MobileLogo from "@/components/layouts/rxmateicon";
-
+import PaymentService from "@/lib/payment";
 
 const CheckoutForm = () => {
   const [formData, setFormData] = useState({
@@ -10,6 +9,9 @@ const CheckoutForm = () => {
     phone: "",
     cohort: "2024/2025",
   });
+
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string>("");
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -19,11 +21,33 @@ const CheckoutForm = () => {
       ...prev,
       [name]: value,
     }));
+
+    // Clear error when user starts typing
+    if (error) {
+      setError("");
+    }
   };
 
-  const handleSubmit = () => {
-    console.log("Form submitted:", formData);
-    // Add your payment logic here when ready
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    setError("");
+
+    try {
+      // We set testMode to true for testing, false for production
+      const testMode = true; // We Change to false when ready for production
+
+      await PaymentService.initiatePayment(formData, 1000, testMode);
+      // If we reach here, payment was initiated successfully
+      // The user will be redirected to the payment page
+    } catch (error: any) {
+      console.error("Payment error:", error);
+      setError(
+        error.message || "Payment initialization failed. Please try again."
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -31,12 +55,19 @@ const CheckoutForm = () => {
       {/* Mobile Logo - Only visible on mobile devices */}
       <MobileLogo />
 
-      <div className=" p-8 w-full max-w-md">
+      <div className="p-8 w-full max-w-md">
         <h3 className="text-3xl font-bold text-gray-900 text-left mb-8">
           Personal Information
         </h3>
 
-        <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
           {/* Email Field */}
           <div>
             <label
@@ -52,7 +83,10 @@ const CheckoutForm = () => {
               value={formData.email}
               onChange={handleInputChange}
               placeholder="Enter your Email"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              required
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
+                error && !formData.email ? "border-red-300" : "border-gray-300"
+              }`}
             />
           </div>
 
@@ -76,7 +110,14 @@ const CheckoutForm = () => {
                 value={formData.phone}
                 onChange={handleInputChange}
                 placeholder="241 000 000"
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                required
+                maxLength={10}
+                pattern="[0-9]{9,10}"
+                className={`flex-1 px-4 py-3 border rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
+                  error && !formData.phone
+                    ? "border-red-300"
+                    : "border-gray-300"
+                }`}
               />
             </div>
           </div>
@@ -126,15 +167,25 @@ const CheckoutForm = () => {
           </div>
 
           {/* Pay Button */}
-          <Link href="/account-setup">
-            <button
-              onClick={handleSubmit}
-              className="w-full bg-[#1C76FD] hover:bg-blue-600 text-white font-semibold py-4 rounded-[24px] transition-colors duration-200 text-lg"
-            >
-              Pay GHS 1,000
-            </button>
-          </Link>
-        </div>
+          <button
+            type="submit"
+            disabled={isProcessing}
+            className={`w-full font-semibold py-4 rounded-[24px] transition-colors duration-200 text-lg ${
+              isProcessing
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#1C76FD] hover:bg-blue-600 text-white"
+            }`}
+          >
+            {isProcessing ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Processing...
+              </div>
+            ) : (
+              "Pay GHS 1,000"
+            )}
+          </button>
+        </form>
       </div>
     </div>
   );
