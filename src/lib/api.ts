@@ -1,4 +1,3 @@
-// src/lib/api.ts
 
 // Types for API integration
 export interface CheckoutData {
@@ -21,7 +20,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     public message: string,
-    public response?: any
+    public response?: unknown
   ) {
     super(message);
     this.name = 'ApiError';
@@ -85,8 +84,8 @@ class ApiService {
   }
 
   // Test basic connection
-  async testConnection(): Promise<any> {
-    return this.request('/');
+  async testConnection(): Promise<{ message: string }> {
+    return this.request<{ message: string }>('/');
   }
 
   // Create payment session - tries multiple endpoint patterns
@@ -131,16 +130,16 @@ class ApiService {
     email: string;
     message: string;
     phone?: string;
-  }): Promise<any> {
-    return this.request('/api/contact', {
+  }): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>('/api/contact', {
       method: 'POST',
       body: contactData,
     });
   }
 
   // Newsletter subscription
-  async subscribeNewsletter(email: string): Promise<any> {
-    return this.request('/api/newsletter/subscribe', {
+  async subscribeNewsletter(email: string): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>('/api/newsletter/subscribe', {
       method: 'POST',
       body: { email },
     });

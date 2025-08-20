@@ -21,7 +21,7 @@ const CheckoutForm = () => {
       ...prev,
       [name]: value,
     }));
-
+    
     // Clear error when user starts typing
     if (error) {
       setError("");
@@ -34,17 +34,16 @@ const CheckoutForm = () => {
     setError("");
 
     try {
-      // We set testMode to true for testing, false for production
-      const testMode = true; // We Change to false when ready for production
-
+      // Set testMode to true for testing, false for production
+      const testMode = true; // Change to false when ready for production
+      
       await PaymentService.initiatePayment(formData, 1000, testMode);
       // If we reach here, payment was initiated successfully
       // The user will be redirected to the payment page
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Payment error:", error);
-      setError(
-        error.message || "Payment initialization failed. Please try again."
-      );
+      const errorMessage = error instanceof Error ? error.message : "Payment initialization failed. Please try again.";
+      setError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -85,7 +84,7 @@ const CheckoutForm = () => {
               placeholder="Enter your Email"
               required
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
-                error && !formData.email ? "border-red-300" : "border-gray-300"
+                error && !formData.email ? 'border-red-300' : 'border-gray-300'
               }`}
             />
           </div>
@@ -114,9 +113,7 @@ const CheckoutForm = () => {
                 maxLength={10}
                 pattern="[0-9]{9,10}"
                 className={`flex-1 px-4 py-3 border rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
-                  error && !formData.phone
-                    ? "border-red-300"
-                    : "border-gray-300"
+                  error && !formData.phone ? 'border-red-300' : 'border-gray-300'
                 }`}
               />
             </div>
@@ -172,8 +169,8 @@ const CheckoutForm = () => {
             disabled={isProcessing}
             className={`w-full font-semibold py-4 rounded-[24px] transition-colors duration-200 text-lg ${
               isProcessing
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-[#1C76FD] hover:bg-blue-600 text-white"
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-[#1C76FD] hover:bg-blue-600 text-white'
             }`}
           >
             {isProcessing ? (
@@ -182,7 +179,7 @@ const CheckoutForm = () => {
                 Processing...
               </div>
             ) : (
-              "Pay GHS 1,000"
+              'Pay GHS 1,000'
             )}
           </button>
         </form>

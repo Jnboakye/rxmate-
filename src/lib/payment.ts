@@ -1,4 +1,3 @@
-// src/lib/payment.ts
 
 import { apiService, CheckoutData, PaymentResponse, ApiError } from './api';
 
@@ -74,7 +73,7 @@ export class PaymentService {
       // Redirect to test Paystack URL
       window.location.href = "https://paystack.com/checkout/xyz";
       
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Test payment error:", error);
       throw new Error("Test payment initialization failed");
     }
@@ -116,7 +115,7 @@ export class PaymentService {
       console.log("Redirecting to real Paystack URL:", checkoutUrl);
       window.location.href = checkoutUrl;
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Payment initialization error:", error);
       
       if (error instanceof ApiError) {
@@ -143,7 +142,7 @@ export class PaymentService {
         sessionId,
         timestamp: Date.now()
       }));
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn('Could not store payment data in session storage:', error);
     }
   }
@@ -155,7 +154,7 @@ export class PaymentService {
     try {
       const stored = sessionStorage.getItem('rxmate_payment_data');
       return stored ? JSON.parse(stored) : null;
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn('Could not retrieve payment data from session storage:', error);
       return null;
     }
@@ -167,7 +166,7 @@ export class PaymentService {
   static clearStoredPaymentData(): void {
     try {
       sessionStorage.removeItem('rxmate_payment_data');
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn('Could not clear payment data from session storage:', error);
     }
   }
@@ -182,7 +181,7 @@ export class PaymentService {
         success: true,
         message: `Backend connected! Response: ${JSON.stringify(response)}`
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Backend connection failed:", error);
       return {
         success: false,
