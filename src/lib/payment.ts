@@ -1,7 +1,5 @@
-import { json, text } from "stream/consumers";
-
 // lib/payment.ts
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL as string;
+import axios, { AxiosInstance, AxiosError } from "axios";
 
 // Export interfaces at the top
 export interface PaymentFormData {
@@ -41,14 +39,17 @@ export interface Cohort {
   updated_at?: string;
 }
 
+export interface PaymentInitRequest {
+  payment_reference: string;
+  phone: string;
+  email: string;
+  cohort_id: number;
+  university_id?: number;
+  callback_url?: string;
+}
+
 export interface PaymentInitResponse {
-  status: string;
-  message: string;
-  data?: {
-    reference: string;
-    url: string;
-    access_code: string;
-  };
+  url: string;
 }
 
 export interface PaymentStatusResponse {
@@ -70,106 +71,130 @@ export interface PaymentStatusResponse {
 }
 
 class PaymentService {
+  private api: AxiosInstance;
   private baseURL: string;
 
   constructor() {
-    this.baseURL = API_BASE_URL;
-    console.log("Payment Service initialized with base URL:", this.baseURL);
-  }
+    this.baseURL = process.env.NEXT_PUBLIC_API_URL as string;
 
-  private async makeRequest(endpoint: string, options: RequestInit = {}) {
-    const url = `${this.baseURL}${endpoint}`;
-
-    console.log(`🌐 Making request to: ${url}`);
-    console.log(`📤 Request method: ${options.method || "GET"}`);
-    console.log(`📤 Request headers:`, options.headers);
-
-    if (options.body) {
-      console.log(`📤 Request body:`, options.body);
+    if (!this.baseURL) {
+      throw new Error("NEXT_PUBLIC_API_URL environment variable is not set");
     }
 
-    const config: RequestInit = {
+    // Create axios instance with default config
+    this.api = axios.create({
+      baseURL: this.baseURL,
+      timeout: 30000, // 30 seconds timeout
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        ...options.headers,
       },
-      ...options,
-    };
+    });
 
-    try {
-      const response = await fetch(url, config);
-
-      console.log(
-        `📥 Response status: ${response.status} ${response.statusText}`
-      );
-      /** 
-      console.log(
-        `📥 Response headers:`,
-        Object.fromEntries(response.headers.entries())
-      );
-      */
-
-      // Handle different response types
-      let data;
-
-      // const contentType = response.headers.get("content-type");
-      try {
-        data = await response.json();
-        console.log("Parsed JSON data:", data);
-      } catch (parseError) {
-        console.log('Failed to parse JSON respose: ' , parseError);
-        throw new Error(`invalid JSON response from ${url}`)
-      }
-
-      /** 
-      if (contentType && contentType.includes("application/json")) {
-        console.log(response);
-        const responseText = await response.json();
-
-        try {
-          data = JSON.parse(responseText);
-          console.log(`📥 Parsed response data:`, data);
-        } catch (parseError) {
-          console.error("❌ JSON parsing failed:", parseError, "Raw", json);
-          throw new Error(`Invalid JSON response: ${json}`);
+    // Setup request interceptor for logging
+    this.api.interceptors.request.use(
+      (config) => {
+        console.log(
+          `🌐 Making ${config.method?.toUpperCase()} request to: ${config.url}`
+        );
+        if (config.data) {
+          console.log("📤 Request data:", config.data);
         }
-      } else {
-        const text = await response.text();
-        console.log(`📥 Non-JSON response:`, text);
-        throw new Error(
-          `Invalid response format. Expected JSON, got: ${contentType}. Response: ${text}`
+        return config;
+      },
+      (error) => {
+        console.error("❌ Request error:", error);
+        return Promise.reject(error);
+      }
+    );
+
+    // Setup response interceptor for logging and error handling
+    this.api.interceptors.response.use(
+      (response) => {
+        console.log(
+          `📥 Response ${response.status} from ${response.config.url}`
         );
+        console.log("📥 Response data:", response.data);
+        return response;
+      },
+      (error: AxiosError) => {
+        this.handleError(error);
+        return Promise.reject(error);
       }
-*/
+    );
 
-      if (!response.ok) {
-        const errorMessage =
-          data?.message ||
-          data?.error ||
-          `API Error: ${response.status} ${response.statusText}`;
-        console.error(`❌ API Error Response:`, {
-          status: response.status,
-          statusText: response.statusText,
-          data: data,
-          url: url,
-        });
-        throw new Error(errorMessage);
+    console.log("Payment Service initialized with base URL:", this.baseURL);
+  }
+
+  private handleError(error: AxiosError): never {
+    console.error("❌ API Error:", error);
+
+    if (error.code === "ECONNABORTED") {
+      throw new Error(
+        "Request timeout. Please check your internet connection and try again."
+      );
+    }
+
+    if (error.code === "ERR_NETWORK") {
+      throw new Error(
+        "Network error. Unable to connect to the server. Please check your internet connection."
+      );
+    }
+
+    if (error.response) {
+      const { status, data } = error.response;
+      let message: string;
+
+      switch (status) {
+        case 400:
+          message =
+            (data as any)?.message ||
+            "Bad request. Please check your input and try again.";
+          break;
+        case 401:
+          message = "Authentication failed. Please contact support.";
+          break;
+        case 403:
+          message = "Access denied. Please contact support.";
+          break;
+        case 404:
+          message = "Service not found. Please contact support.";
+          break;
+        case 422:
+          message =
+            (data as any)?.message ||
+            "Validation failed. Please check your details and try again.";
+          break;
+        case 500:
+          message = "Server error. Please try again in a few minutes.";
+          break;
+        default:
+          message =
+            (data as any)?.message ||
+            `Server error (${status}). Please try again.`;
       }
 
-      return data;
+      throw new Error(message);
+    }
+
+    // If no response (network error, etc.)
+    throw new Error(
+      error.message || "An unexpected error occurred. Please try again."
+    );
+  }
+
+  /**
+   * Test API connectivity
+   */
+  async testConnection(): Promise<boolean> {
+    try {
+      console.log("🔍 Testing API connection...");
+      const response = await this.api.get("/universities", { timeout: 5000 });
+      console.log(`🔍 Connection test successful: ${response.status}`);
+      return true;
     } catch (error) {
-      console.error("❌ Payment Service Error:", error);
-
-
-      // Enhanced error reporting
-      if (error instanceof TypeError && error.message.includes("fetch")) {
-        throw new Error(
-          `Network error: Unable to connect to ${url}. Please check your internet connection.`
-        );
-      }
-
-      throw error;
+      console.error("🔍 Connection test failed:", error);
+      return false;
     }
   }
 
@@ -178,30 +203,33 @@ class PaymentService {
    */
   async getUniversities(): Promise<University[]> {
     try {
-      const response = await this.makeRequest("/universities", {
-        method: "GET",
-      });
+      const response = await this.api.get<
+        University[] | { data: University[]; universities: University[] }
+      >("/universities");
 
-      if (Array.isArray(response)) {
-        return response;
-      } else if (response.data && Array.isArray(response.data)) {
+      // Handle different response structures
+      if (Array.isArray(response.data)) {
         return response.data;
       } else if (
-        response.universities &&
-        Array.isArray(response.universities)
+        (response.data as any).data &&
+        Array.isArray((response.data as any).data)
       ) {
-        return response.universities;
+        return (response.data as any).data;
+      } else if (
+        (response.data as any).universities &&
+        Array.isArray((response.data as any).universities)
+      ) {
+        return (response.data as any).universities;
       } else {
-        console.warn("Unexpected universities response structure:", response);
+        console.warn(
+          "Unexpected universities response structure:",
+          response.data
+        );
         return [];
       }
     } catch (error) {
       console.error("Failed to fetch universities:", error);
-      throw new Error(
-        `Failed to fetch universities: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+      throw error;
     }
   }
 
@@ -210,42 +238,40 @@ class PaymentService {
    */
   async getCohorts(): Promise<Cohort[]> {
     try {
-      const response = await this.makeRequest("/cohort", {
-        method: "GET",
-      });
+      const response = await this.api.get<
+        Cohort[] | { data: Cohort[]; cohorts: Cohort[] }
+      >("/cohort");
 
-      if (Array.isArray(response)) {
-        return response.map((cohort) => ({
-          ...cohort,
-          name: cohort.name || cohort.title,
-          currency: cohort.currency || "GHS",
-          status: cohort.status || "active",
-        }));
-      } else if (response.data && Array.isArray(response.data)) {
-        return response.data.map((cohort: any) => ({
-          ...cohort,
-          name: cohort.name || cohort.title,
-          currency: cohort.currency || "GHS",
-          status: cohort.status || "active",
-        }));
-      } else if (response.cohorts && Array.isArray(response.cohorts)) {
-        return response.cohorts.map((cohort: any) => ({
-          ...cohort,
-          name: cohort.name || cohort.title,
-          currency: cohort.currency || "GHS",
-          status: cohort.status || "active",
-        }));
+      let cohorts: Cohort[] = [];
+
+      // Handle different response structures
+      if (Array.isArray(response.data)) {
+        cohorts = response.data;
+      } else if (
+        (response.data as any).data &&
+        Array.isArray((response.data as any).data)
+      ) {
+        cohorts = (response.data as any).data;
+      } else if (
+        (response.data as any).cohorts &&
+        Array.isArray((response.data as any).cohorts)
+      ) {
+        cohorts = (response.data as any).cohorts;
       } else {
-        console.warn("Unexpected cohorts response structure:", response);
+        console.warn("Unexpected cohorts response structure:", response.data);
         return [];
       }
+
+      // Normalize cohort data
+      return cohorts.map((cohort) => ({
+        ...cohort,
+        name: cohort.name || cohort.title,
+        currency: cohort.currency || "GHS",
+        status: cohort.status || "active",
+      }));
     } catch (error) {
       console.error("Failed to fetch cohorts:", error);
-      throw new Error(
-        `Failed to fetch cohorts: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+      throw error;
     }
   }
 
@@ -254,26 +280,39 @@ class PaymentService {
    */
   async getCohortsByUniversity(universityId: string): Promise<Cohort[]> {
     try {
-      const allCohorts = await this.getCohorts();
-
-      if (allCohorts.length > 0 && allCohorts[0].university_id !== undefined) {
-        return allCohorts.filter(
-          (cohort) =>
-            cohort.university_id === universityId ||
-            cohort.university_id === parseInt(universityId, 10).toString()
+      // First try to get cohorts with university filter if the API supports it
+      // If not, we'll filter locally
+      try {
+        const response = await this.api.get<Cohort[]>(
+          `/cohorts/university/${universityId}`
         );
-      }
+        return Array.isArray(response.data) ? response.data : [];
+      } catch (error) {
+        // If the endpoint doesn't exist, fall back to filtering all cohorts
+        console.log(
+          "University-specific cohort endpoint not available, filtering locally"
+        );
+        const allCohorts = await this.getCohorts();
 
-      console.warn(
-        "Cohorts do not have university_id field. Returning all cohorts."
-      );
-      return allCohorts;
+        if (
+          allCohorts.length > 0 &&
+          allCohorts[0].university_id !== undefined
+        ) {
+          return allCohorts.filter(
+            (cohort) =>
+              cohort.university_id === universityId ||
+              cohort.university_id === parseInt(universityId, 10).toString()
+          );
+        }
+
+        console.warn(
+          "Cohorts do not have university_id field. Returning all cohorts."
+        );
+        return allCohorts;
+      }
     } catch (error) {
-      throw new Error(
-        `Failed to fetch cohorts for university: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+      console.error("Failed to fetch cohorts for university:", error);
+      throw error;
     }
   }
 
@@ -284,18 +323,24 @@ class PaymentService {
     universityId: string
   ): Promise<University | undefined> {
     try {
-      const universities = await this.getUniversities();
-      return universities.find(
-        (u) =>
-          u.id === universityId ||
-          u.id === parseInt(universityId, 10).toString()
-      );
+      // Try to get specific university first
+      try {
+        const response = await this.api.get<University>(
+          `/universities/${universityId}`
+        );
+        return response.data;
+      } catch (error) {
+        // If specific endpoint doesn't exist, search in all universities
+        const universities = await this.getUniversities();
+        return universities.find(
+          (u) =>
+            u.id === universityId ||
+            u.id === parseInt(universityId, 10).toString()
+        );
+      }
     } catch (error) {
-      throw new Error(
-        `Failed to fetch university: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+      console.error("Failed to fetch university:", error);
+      throw error;
     }
   }
 
@@ -304,47 +349,25 @@ class PaymentService {
    */
   async getCohortById(cohortId: string): Promise<Cohort | undefined> {
     try {
-      const cohorts = await this.getCohorts();
-      return cohorts.find(
-        (c) => c.id.toString() === cohortId || c.id === parseInt(cohortId, 10)
-      );
+      // Try to get specific cohort first
+      try {
+        const response = await this.api.get<Cohort>(`/cohort/${cohortId}`);
+        return response.data;
+      } catch (error) {
+        // If specific endpoint doesn't exist, search in all cohorts
+        const cohorts = await this.getCohorts();
+        return cohorts.find(
+          (c) => c.id.toString() === cohortId || c.id === parseInt(cohortId, 10)
+        );
+      }
     } catch (error) {
-      throw new Error(
-        `Failed to fetch cohort: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
-    }
-  }
-
-  /**
-   * Test API connectivity
-   */
-  async testConnection(): Promise<boolean> {
-    try {
-      console.log("🔍 Testing API connection...");
-
-      // Try to fetch universities as a simple connectivity test
-      const response = await fetch(`${this.baseURL}/universities`, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      console.log(
-        `🔍 Connection test response: ${response.status} ${response.statusText}`
-      );
-      return response.status < 500; // Accept 4xx but not 5xx errors
-    } catch (error) {
-      console.error("🔍 Connection test failed:", error);
-      return false;
+      console.error("Failed to fetch cohort:", error);
+      throw error;
     }
   }
 
   /**
    * Initiate a payment transaction
-   * POST /payment/initialise
    */
   async initiatePayment(
     formData: PaymentFormData,
@@ -364,7 +387,7 @@ class PaymentService {
       );
     }
 
-    // Validate required data before sending
+    // Validate required data
     if (
       !formData.email ||
       !formData.phone ||
@@ -377,23 +400,19 @@ class PaymentService {
       if (!formData.cohort) missingFields.push("cohort");
       if (!formData.university) missingFields.push("university");
 
-      console.error("❌ Missing required form fields:", missingFields);
       throw new Error(
         `Missing required form data: ${missingFields.join(", ")}`
       );
     }
 
     if (!cohort || !cohort.current_price) {
-      console.error("❌ Invalid cohort data:", cohort);
       throw new Error("Invalid cohort data - missing price information");
     }
 
     // Format phone number properly
-    let phoneNumber = formData.phone.trim();
-    console.log("📞 Original phone number:", phoneNumber);
-
-    phoneNumber = phoneNumber.replace(/[^\d+]/g, "");
-    console.log("📞 After removing non-digits:", phoneNumber);
+    let phoneNumber = formData.phone.trim().replace(/[^\d+]/g, "");
+    console.log("📞 Original phone number:", formData.phone);
+    console.log("📞 After cleaning:", phoneNumber);
 
     if (!phoneNumber.startsWith("+233")) {
       if (phoneNumber.startsWith("0")) {
@@ -401,11 +420,11 @@ class PaymentService {
       }
       phoneNumber = `+233${phoneNumber}`;
     }
+
     console.log("📞 Final formatted phone number:", phoneNumber);
 
     // Validate phone number length
     if (phoneNumber.length !== 13) {
-      console.error("❌ Invalid phone number length:", phoneNumber.length);
       throw new Error(
         `Invalid phone number format. Expected 13 characters (+233XXXXXXXXX), got ${phoneNumber.length}. Please enter a valid Ghanaian phone number.`
       );
@@ -417,118 +436,56 @@ class PaymentService {
       .substr(2, 9)}`;
     console.log("🔢 Generated payment reference:", paymentReference);
 
-    // Prepare payment data according to API schema
-    const paymentData = {
+    // Prepare payment data
+    const paymentData: PaymentInitRequest = {
       payment_reference: paymentReference,
       phone: phoneNumber,
       email: formData.email.trim().toLowerCase(),
       cohort_id: parseInt(formData.cohort, 10),
+      university_id: parseInt(formData.university, 10),
       ...(callbackUrl && { callback_url: callbackUrl }),
     };
 
-    console.log("📤 Final payment data to be sent:", paymentData);
-
     // Validate cohort_id is a valid number
     if (isNaN(paymentData.cohort_id)) {
-      console.error("❌ Invalid cohort_id:", formData.cohort);
       throw new Error(
         "Invalid cohort selection. Please refresh the page and try again."
       );
     }
 
+    console.log("📤 Final payment data to be sent:", paymentData);
+
     try {
-      let response;
-      try {
-        response = await this.makeRequest("/payment/initialise", {
-          method: "POST",
-          body: JSON.stringify(paymentData),
-        });
-        console.log("response from makeRequest:", response);
-      } catch (error) {
-        console.error(" Error calling payment/initialise endpoint:", error);
-        throw new Error(
-          "Payment initialization request failed. Please try again."
-        );
-      }
+      const response = await this.api.post<PaymentInitResponse>(
+        "/payment/initialise",
+        paymentData
+      );
 
       // Check if payment initialization was successful
-      if (response.status === "success" && response.data?.url) {
+
+      if (response.data && response.data.url) {
         console.log("🎉 Payment initialization successful!");
-        console.log("🔗 URL:", response.data.url);
+        console.log("🔗 Redirect URL:", response.data.url);
 
-        // Store payment reference and form data in sessionStorage
-        if (typeof window !== "undefined") {
-          try {
-            sessionStorage.setItem("payment_reference", paymentReference);
-            sessionStorage.setItem(
-              "payment_form_data",
-              JSON.stringify({
-                email: formData.email,
-                phone: phoneNumber,
-                cohort_id: formData.cohort,
-                university_id: formData.university,
-              })
-            );
-            sessionStorage.setItem("selected_cohort", JSON.stringify(cohort));
-            console.log("💾 Payment data stored in session storage");
-          } catch (storageError) {
-            console.warn(
-              "⚠️ Failed to store payment data in session storage:",
-              storageError
-            );
-          }
-        }
+        // Store payment data in sessionStorage
+        this.storePaymentData(paymentReference, formData, cohort);
 
-        // Redirect user to the URL
+        // Redirect user to the payment URL
         if (typeof window !== "undefined") {
           console.log("🔄 Redirecting to payment gateway...");
           window.location.href = response.data.url;
         }
 
-        return response;
+        return response.data;
       } else {
-        console.error(
-          "❌ Payment initialization failed - invalid response:",
-          response
-        );
+        console.error("Invalid response structure:", response.data);
         throw new Error(
-          response.message ||
-            response.error ||
-            "Payment initialization failed - no authorization URL received"
+          "Payment initialization failed - no authorization URL received"
         );
       }
     } catch (error) {
       console.error("❌ Payment initialization error:", error);
-
-      // Enhanced error handling with more specific messages
-      if (error instanceof Error) {
-        if (error.message.includes("422")) {
-          throw new Error(
-            "Payment validation failed. Please check that all your details are correct and try again."
-          );
-        } else if (error.message.includes("400")) {
-          throw new Error(
-            "Bad request. Please check your form data and try again."
-          );
-        } else if (error.message.includes("401")) {
-          throw new Error("Authentication failed. Please contact support.");
-        } else if (error.message.includes("403")) {
-          throw new Error("Access denied. Please contact support.");
-        } else if (error.message.includes("404")) {
-          throw new Error("Payment service not found. Please contact support.");
-        } else if (error.message.includes("500")) {
-          throw new Error("Server error. Please try again in a few minutes.");
-        } else if (error.message.includes("Network error")) {
-          throw new Error(
-            "Network connection failed. Please check your internet connection and try again."
-          );
-        }
-
-        // If it's already a formatted error message, use it
-        throw error;
-      }
-
-      throw new Error("Payment initialization failed. Please try again.");
+      throw error;
     }
   }
 
@@ -538,35 +495,14 @@ class PaymentService {
   async getPaymentStatus(reference: string): Promise<PaymentStatusResponse> {
     try {
       console.log("🔍 Checking payment status for reference:", reference);
-      const response = await this.makeRequest(`/payment/${reference}`, {
-        method: "GET",
-      });
-      console.log("📊 Payment status response:", response);
-      return response;
-    } catch (error) {
-      throw new Error(
-        `Failed to get payment status: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+      const response = await this.api.get<PaymentStatusResponse>(
+        `/payment/${reference}`
       );
-    }
-  }
-
-  /**
-   * Handle webhook
-   */
-  async handleWebhook(webhookData: any): Promise<any> {
-    try {
-      return await this.makeRequest("/payment/webhook", {
-        method: "POST",
-        body: JSON.stringify(webhookData),
-      });
+      console.log("📊 Payment status response:", response.data);
+      return response.data;
     } catch (error) {
-      throw new Error(
-        `Failed to process webhook: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+      console.error("Failed to get payment status:", error);
+      throw error;
     }
   }
 
@@ -582,6 +518,37 @@ class PaymentService {
     } catch (error) {
       console.error("Payment verification failed:", error);
       return false;
+    }
+  }
+
+  /**
+   * Store payment data in sessionStorage
+   */
+  private storePaymentData(
+    reference: string,
+    formData: PaymentFormData,
+    cohort: Cohort
+  ) {
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem("payment_reference", reference);
+        sessionStorage.setItem(
+          "payment_form_data",
+          JSON.stringify({
+            email: formData.email,
+            phone: formData.phone,
+            cohort_id: formData.cohort,
+            university_id: formData.university,
+          })
+        );
+        sessionStorage.setItem("selected_cohort", JSON.stringify(cohort));
+        console.log("💾 Payment data stored in session storage");
+      } catch (storageError) {
+        console.warn(
+          "⚠️ Failed to store payment data in session storage:",
+          storageError
+        );
+      }
     }
   }
 

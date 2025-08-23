@@ -5,19 +5,47 @@ import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import MobileLogo from "@/components/layouts/rxmateicon";
-import PaymentService from "@/lib/payment";
-import { useUniversities } from "@/hooks/useUniversitiesAndCohorts";
+import {
+  useUniversities,
+  usePaymentStatus,
+} from "@/hooks/useUniversitiesAndCohorts";
+import paymentService from "@/lib/payment";
+
+interface AccountSetupFormData {
+  firstName: string;
+  lastName: string;
+  whatsappNumber: string;
+  university: string;
+}
 
 const RegistrationForm = () => {
   const searchParams = useSearchParams();
-  const [paymentVerified, setPaymentVerified] = useState<boolean | null>(null);
-  const [paymentError, setPaymentError] = useState<string>("");
-  const [paymentData, setPaymentData] = useState<any>(null);
-  
-  // Fetch universities from backend
-  const { universities, loading: universitiesLoading, error: universitiesError } = useUniversities();
-  
-  const [formData, setFormData] = useState({
+
+  // Get payment reference from URL or stored data
+  const paymentReference =
+    searchParams.get("reference") ||
+    searchParams.get("trxref") ||
+    searchParams.get("payment_reference") ||
+    paymentService.getStoredPaymentData()?.reference;
+
+  // Use payment status hook
+  const {
+    paymentStatus,
+    loading: paymentLoading,
+    error: paymentError,
+    isVerified,
+    refetch: recheckPayment,
+  } = usePaymentStatus(paymentReference || undefined);
+
+  // Fetch universities
+  const {
+    universities,
+    loading: universitiesLoading,
+    error: universitiesError,
+    refetch: refetchUniversities,
+  } = useUniversities();
+
+  const [formData, setFormData] = useState<AccountSetupFormData>({
     firstName: "",
     lastName: "",
     whatsappNumber: "",
@@ -26,175 +54,201 @@ const RegistrationForm = () => {
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string>("");
 
-  // Verify payment on page load if reference is present
+  // Pre-populate form data when payment is verified
   useEffect(() => {
-    const verifyPayment = async () => {
-      // Get payment reference from URL parameters
-      const reference = searchParams.get('reference') || 
-                       searchParams.get('trxref') || 
-                       searchParams.get('payment_reference');
-      
-      // Also try to get stored payment data
-      const storedData = PaymentService.getStoredPaymentData();
-      
-      if (reference) {
-        try {
-          console.log('Verifying payment with reference:', reference);
-          const response = await PaymentService.getPaymentStatus(reference);
-          
-          if (response.status === 'success' && response.data?.status === 'success') {
-            setPaymentVerified(true);
-            setPaymentData(response.data);
-            
-            // Pre-populate form with payment data if available
-            if (response.data.customer) {
-              // Extract phone number without country code for display
-              let phoneDisplay = response.data.customer.phone;
-              if (phoneDisplay.startsWith('+233')) {
-                phoneDisplay = phoneDisplay.substring(4);
-              }
-              
-              setFormData(prev => ({
-                ...prev,
-                whatsappNumber: phoneDisplay,
-              }));
-            }
-            
-            // If we have stored payment data, use it to pre-populate university
-            if (storedData?.formData?.university_id) {
-              setFormData(prev => ({
-                ...prev,
-                university: storedData.formData.university_id,
-              }));
-            }
-            
-            console.log('Payment verified successfully:', response.data);
-          } else {
-            setPaymentVerified(false);
-            setPaymentError('Payment verification failed. Please contact support.');
-          }
-        } catch (error) {
-          console.error('Payment verification error:', error);
-          setPaymentVerified(false);
-          setPaymentError('Unable to verify payment. Please contact support.');
+    if (isVerified && paymentStatus) {
+      console.log("🎉 Payment verified, pre-populating form data");
+
+      // Pre-populate WhatsApp number from payment data
+      if (paymentStatus.customer?.phone) {
+        let phoneDisplay = paymentStatus.customer.phone;
+        if (phoneDisplay.startsWith("+233")) {
+          phoneDisplay = phoneDisplay.substring(4);
         }
-      } else if (storedData?.reference) {
-        // Try to verify using stored reference
-        try {
-          const response = await PaymentService.getPaymentStatus(storedData.reference);
-          if (response.status === 'success' && response.data?.status === 'success') {
-            setPaymentVerified(true);
-            setPaymentData(response.data);
-          } else {
-            // Allow them to proceed but show a warning
-            setPaymentVerified(true);
-            console.warn('Could not verify stored payment reference');
-          }
-        } catch (error) {
-          console.warn('Could not verify stored payment:', error);
-          setPaymentVerified(true); // Allow them to proceed
-        }
-      } else {
-        // No payment reference found - user might have navigated directly
-        // In production, you might want to redirect them to payment page
-        console.warn('No payment reference found');
-        setPaymentVerified(true); // Allow them to proceed for now
+        setFormData((prev) => ({
+          ...prev,
+          whatsappNumber: phoneDisplay,
+        }));
       }
-    };
 
-    verifyPayment();
-  }, [searchParams]);
+      // Pre-populate university from stored payment data
+      const storedData = paymentService.getStoredPaymentData();
+      if (storedData?.formData?.university_id) {
+        setFormData((prev) => ({
+          ...prev,
+          university: storedData.formData.university_id,
+        }));
+      }
+    }
+  }, [isVerified, paymentStatus]);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (
+    field: keyof AccountSetupFormData,
+    value: string
+  ) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+
+    // Clear submit error when user starts typing
+    if (submitError) {
+      setSubmitError("");
+    }
   };
 
-  const handleUniversitySelect = (universityId: string, universityName: string) => {
+  const handleUniversitySelect = (
+    universityId: string,
+    universityName: string
+  ) => {
     handleInputChange("university", universityId);
     setIsDropdownOpen(false);
+  };
+
+  const validateForm = (): string | null => {
+    if (!formData.firstName.trim()) {
+      return "First name is required";
+    }
+    if (!formData.lastName.trim()) {
+      return "Last name is required";
+    }
+    if (!formData.whatsappNumber.trim()) {
+      return "WhatsApp number is required";
+    }
+    if (!formData.university) {
+      return "Please select your university";
+    }
+
+    // Validate phone number format
+    const phoneRegex = /^[0-9]{9,10}$/;
+    if (!phoneRegex.test(formData.whatsappNumber)) {
+      return "Please enter a valid phone number (9-10 digits)";
+    }
+
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+    setSubmitError("");
+
     // Validate form data
-    if (!formData.firstName.trim() || !formData.lastName.trim() || 
-        !formData.whatsappNumber.trim() || !formData.university) {
-      alert('Please fill in all required fields');
+    const validationError = validateForm();
+    if (validationError) {
+      setSubmitError(validationError);
       setIsSubmitting(false);
       return;
     }
 
     try {
-      console.log("Account setup form submitted:", formData);
-      
-      // Here you would typically:
-      // 1. Create user account with the form data
-      // 2. Associate it with the payment data
-      // 3. Send welcome email with app setup instructions
-      
+      console.log("🚀 Account setup form submitted:", formData);
+      console.log("💳 Payment reference:", paymentReference);
+      console.log("💳 Payment status:", paymentStatus);
+
+      // Prepare account creation data
+      const accountData = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        whatsappNumber: `+233${formData.whatsappNumber}`,
+        university: formData.university,
+        email: paymentStatus?.customer?.email,
+        paymentReference: paymentReference,
+        cohortId: paymentService.getStoredPaymentData()?.formData?.cohort_id,
+      };
+
+      console.log("📤 Account creation data:", accountData);
+
+      // Here you would typically call your account creation API
       // For now, we'll simulate the process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Clear stored payment data since account is now created
-      PaymentService.clearStoredPaymentData();
-      
+      paymentService.clearStoredPaymentData();
+
       // Redirect to success page or app download
-      console.log("Account created successfully!");
-      
+      console.log("✅ Account created successfully!");
+      alert(
+        "Account created successfully! You will receive setup instructions via email."
+      );
+
+      // Optionally redirect to app download or success page
+      // window.location.href = '/download-app';
     } catch (error) {
-      console.error("Account creation error:", error);
-      alert("Failed to create account. Please try again.");
+      console.error("❌ Account creation error:", error);
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Failed to create account. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   // Show loading while verifying payment or loading universities
-  if (paymentVerified === null || universitiesLoading) {
+  if (paymentLoading || universitiesLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8 font-openSauce">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-gray-600">
-            {paymentVerified === null ? "Verifying payment..." : "Loading universities..."}
+            {paymentLoading
+              ? "Verifying payment..."
+              : "Loading universities..."}
           </p>
+          <p className="text-sm text-gray-500 mt-2">Please wait a moment</p>
         </div>
       </div>
     );
   }
 
   // Show error if payment verification failed or universities failed to load
-  if (paymentVerified === false || universitiesError) {
-    const errorMessage = paymentError || universitiesError || "An error occurred";
-    const isPaymentError = paymentVerified === false;
-    
+  if ((paymentReference && isVerified === false) || universitiesError) {
+    const errorMessage =
+      paymentError || universitiesError || "An error occurred";
+    const isPaymentError = paymentReference && isVerified === false;
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8 font-openSauce">
         <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
           <div className="text-red-500 text-6xl mb-4">❌</div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            {isPaymentError ? "Payment Verification Failed" : "Failed to Load Data"}
+            {isPaymentError
+              ? "Payment Verification Failed"
+              : "Failed to Load Data"}
           </h2>
           <p className="text-gray-600 mb-6">{errorMessage}</p>
           <div className="space-y-3">
-            {isPaymentError && (
-              <Link href="/checkout" className="block">
-                <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition-colors">
-                  Try Payment Again
+            {isPaymentError ? (
+              <>
+                <button
+                  onClick={() => recheckPayment()}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition-colors"
+                >
+                  Retry Payment Verification
                 </button>
-              </Link>
+                <Link href="/checkout" className="block">
+                  <button className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-lg transition-colors">
+                    Make New Payment
+                  </button>
+                </Link>
+              </>
+            ) : (
+              <button
+                onClick={refetchUniversities}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition-colors"
+              >
+                Retry Loading Universities
+              </button>
             )}
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-lg transition-colors"
             >
-              Retry
+              Refresh Page
             </button>
             <Link href="/" className="block">
               <button className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-lg transition-colors">
@@ -208,24 +262,43 @@ const RegistrationForm = () => {
   }
 
   // Get the selected university name for display
-  const selectedUniversity = universities.find(uni => uni.id === formData.university);
+  const selectedUniversity = universities.find(
+    (uni) => uni.id === formData.university
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8 font-openSauce">
-       {/* Mobile Logo - Only visible on mobile devices */}
+      {/* Mobile Logo - Only visible on mobile devices */}
       <MobileLogo />
-      
-      <div className="">
+
+      <div className="max-w-md w-full">
         {/* Payment Success Message */}
-        {(searchParams.get('reference') || paymentData) && (
+        {isVerified && (
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6 text-center">
             <p className="font-medium">🎉 Payment Successful!</p>
             <p className="text-sm">Let's complete your account setup</p>
-            {paymentData && (
+            {paymentStatus && (
               <p className="text-xs mt-1">
-                Amount: {paymentData.currency} {paymentData.amount?.toLocaleString()}
+                Reference: {paymentReference} • Amount: {paymentStatus.currency}{" "}
+                {paymentStatus.amount?.toLocaleString()}
               </p>
             )}
+          </div>
+        )}
+
+        {/* Payment Warning for Direct Access */}
+        {!paymentReference && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg mb-6 text-center">
+            <p className="font-medium">⚠️ No Payment Reference Found</p>
+            <p className="text-sm">
+              If you haven't made a payment yet, please complete payment first
+            </p>
+            <Link
+              href="/checkout"
+              className="text-blue-600 hover:text-blue-800 text-sm underline"
+            >
+              Make Payment →
+            </Link>
           </div>
         )}
 
@@ -244,6 +317,16 @@ const RegistrationForm = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Submit Error */}
+          {submitError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              <div className="flex items-center">
+                <span className="mr-2">⚠️</span>
+                {submitError}
+              </div>
+            </div>
+          )}
+
           {/* First Name */}
           <div>
             <label className="block text-sm font-medium text-[#00000099] mb-2">
@@ -254,7 +337,10 @@ const RegistrationForm = () => {
               value={formData.firstName}
               onChange={(e) => handleInputChange("firstName", e.target.value)}
               placeholder="Enter your first name"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+              disabled={isSubmitting}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                isSubmitting ? "bg-gray-100 cursor-not-allowed" : ""
+              }`}
               required
             />
           </div>
@@ -269,7 +355,10 @@ const RegistrationForm = () => {
               value={formData.lastName}
               onChange={(e) => handleInputChange("lastName", e.target.value)}
               placeholder="Enter your last name"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+              disabled={isSubmitting}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                isSubmitting ? "bg-gray-100 cursor-not-allowed" : ""
+              }`}
               required
             />
           </div>
@@ -291,7 +380,10 @@ const RegistrationForm = () => {
                   handleInputChange("whatsappNumber", e.target.value)
                 }
                 placeholder="241 000 000"
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                disabled={isSubmitting}
+                className={`flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                  isSubmitting ? "bg-gray-100 cursor-not-allowed" : ""
+                }`}
                 required
                 maxLength={10}
                 pattern="[0-9]{9,10}"
@@ -310,15 +402,25 @@ const RegistrationForm = () => {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-left flex items-center justify-between bg-white"
+                onClick={() =>
+                  !isSubmitting && setIsDropdownOpen(!isDropdownOpen)
+                }
+                disabled={isSubmitting || universities.length === 0}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-left flex items-center justify-between bg-white ${
+                  isSubmitting || universities.length === 0
+                    ? "bg-gray-100 cursor-not-allowed"
+                    : "hover:border-gray-400"
+                }`}
               >
                 <span
                   className={
                     formData.university ? "text-gray-900" : "text-gray-500"
                   }
                 >
-                  {selectedUniversity?.name || "Choose your university"}
+                  {selectedUniversity?.name ||
+                    (universities.length === 0
+                      ? "Loading universities..."
+                      : "Choose your university")}
                 </span>
                 <ChevronDown
                   className={`w-5 h-5 text-gray-400 transition-transform ${
@@ -327,7 +429,7 @@ const RegistrationForm = () => {
                 />
               </button>
 
-              {isDropdownOpen && (
+              {isDropdownOpen && !isSubmitting && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
                   {universities.length === 0 ? (
                     <div className="px-4 py-3 text-gray-500 text-center">
@@ -338,8 +440,10 @@ const RegistrationForm = () => {
                       <button
                         key={university.id}
                         type="button"
-                        onClick={() => handleUniversitySelect(university.id, university.name)}
-                        className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+                        onClick={() =>
+                          handleUniversitySelect(university.id, university.name)
+                        }
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0 transition-colors"
                       >
                         {university.name}
                       </button>
@@ -353,11 +457,11 @@ const RegistrationForm = () => {
           {/* Continue Button */}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || universities.length === 0}
             className={`w-full font-semibold py-3 px-6 rounded-lg transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 outline-none ${
-              isSubmitting 
-                ? 'bg-gray-400 cursor-not-allowed text-white' 
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
+              isSubmitting || universities.length === 0
+                ? "bg-gray-400 cursor-not-allowed text-white"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
             }`}
           >
             {isSubmitting ? (
@@ -366,15 +470,38 @@ const RegistrationForm = () => {
                 Creating Account...
               </div>
             ) : (
-              'Complete Setup'
+              "Complete Setup"
             )}
           </button>
-          
-          {/* Alternative: Link to download app if you want to skip account creation for now */}
-          <div className="text-center">
-            <Link href="/download-app" className="text-blue-600 hover:text-blue-800 text-sm">
+
+          {/* Alternative options */}
+          <div className="text-center space-y-2">
+            <Link
+              href="/download-app"
+              className="block text-blue-600 hover:text-blue-800 text-sm transition-colors"
+            >
               Skip for now and download app →
             </Link>
+            <Link
+              href="/checkout"
+              className="block text-gray-500 hover:text-gray-700 text-sm transition-colors"
+            >
+              ← Back to payment
+            </Link>
+          </div>
+
+          {/* Help section */}
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+            <div className="flex items-start">
+              <span className="text-blue-600 mr-2 mt-0.5">💡</span>
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">Need Help?</p>
+                <p>
+                  If you're experiencing issues, please contact our support team
+                  or try refreshing the page.
+                </p>
+              </div>
+            </div>
           </div>
         </form>
       </div>

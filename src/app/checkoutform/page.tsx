@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import MobileLogo from "@/components/layouts/rxmateicon";
-import  { PaymentFormData, Cohort, } from "@/lib/payment";
-import { useUniversitiesWithCohorts } from "@/hooks/useUniversitiesAndCohorts";
+import { PaymentFormData, Cohort } from "@/lib/payment";
+import { useUniversitiesWithCohorts, usePaymentInit } from "@/hooks/useUniversitiesAndCohorts";
 
 const CheckoutForm = () => {
   const [formData, setFormData] = useState<PaymentFormData>({
@@ -13,10 +13,8 @@ const CheckoutForm = () => {
   });
 
   const [selectedCohort, setSelectedCohort] = useState<Cohort | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string>("");
 
-  // Fetch universities and cohorts
+  // Use the improved hooks
   const {
     universities,
     cohorts,
@@ -24,18 +22,28 @@ const CheckoutForm = () => {
     error: dataError,
     getCohortsByUniversity,
     getUniversityById,
+    getCohortById,
+    refetchAll,
   } = useUniversitiesWithCohorts();
+
+  const {
+    initiatePayment,
+    loading: paymentLoading,
+    error: paymentError,
+    success: paymentSuccess,
+    clearState: clearPaymentState,
+  } = usePaymentInit();
 
   // Update selected cohort when cohort selection changes
   useEffect(() => {
     if (formData.cohort) {
       const cohortId = parseInt(formData.cohort, 10);
-      const cohort = cohorts.find(c => c.id === cohortId);
+      const cohort = getCohortById(cohortId);
       setSelectedCohort(cohort || null);
     } else {
       setSelectedCohort(null);
     }
-  }, [formData.cohort, cohorts]);
+  }, [formData.cohort, getCohortById]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -55,110 +63,56 @@ const CheckoutForm = () => {
       setSelectedCohort(null);
     }
     
-    // Clear error when user starts typing
-    if (error) {
-      setError("");
+    // Clear payment error when user starts typing
+    if (paymentError) {
+      clearPaymentState();
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsProcessing(true);
-    setError("");
-
+    
+    // Clear any previous payment state
+    clearPaymentState();
 
     // Validation
     if (!selectedCohort) {
-      setError("Please select a cohort");
-      setIsProcessing(false);
+      alert("Please select a cohort");
       return;
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      setError("Please enter a valid email address");
-      setIsProcessing(false);
+      alert("Please enter a valid email address");
       return;
     }
 
     // Validate phone number (should be 9-10 digits)
     const phoneRegex = /^[0-9]{9,10}$/;
     if (!phoneRegex.test(formData.phone)) {
-      setError("Please enter a valid phone number (9-10 digits)");
-      setIsProcessing(false);
+      alert("Please enter a valid phone number (9-10 digits)");
       return;
     }
 
     try {
       // Generate callback URL for after payment completion
-      // This should point to your account setup page
       const baseUrl = window.location.origin;
       const callbackUrl = `${baseUrl}/account-setup`;
       
-      console.log('Initiating payment with callback URL:', callbackUrl);
+      console.log('🚀 Initiating payment with callback URL:', callbackUrl);
       
-      // Initiate payment - this will redirect the user to the payment gateway
-    //  await paymentService.initiatePayment(formData, selectedCohort, callbackUrl);
-    const initializePaymentDirect = async () => {
-  try {
-    const response = await fetch('/payment/initialise', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-      payment_reference: 'string',
-      phone: 'string',
-      email: formData.email.trim().toLowerCase(),
-      cohort_id: parseInt(formData.cohort, 10),
-      ...(callbackUrl && { callback_url: callbackUrl }),
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data;
-    
-  } catch (error) {
-    console.error('Payment initialization error:', error);
-    throw error;
-  }
-};
-
-//calling payment function 
-
-
-    
+      // Initiate payment using the improved service
+      await initiatePayment(formData, selectedCohort, callbackUrl);
       
+      // The payment service will automatically redirect the user to the payment gateway
       // If we reach here without being redirected, something went wrong
-      console.warn('Payment initiation completed but no redirect occurred');
+      console.warn('⚠️ Payment initiation completed but no redirect occurred');
       
     } catch (error: unknown) {
-      console.error("Payment error:", error);
-      let errorMessage = "Payment initialization failed. Please try again.";
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-        
-        // Handle specific error cases
-        if (error.message.includes('phone number')) {
-          errorMessage = "Invalid phone number format. Please enter a valid Ghanaian phone number.";
-        } else if (error.message.includes('email')) {
-          errorMessage = "Invalid email address. Please check and try again.";
-        } else if (error.message.includes('422')) {
-          errorMessage = "Please check your details and try again. Make sure all fields are filled correctly.";
-        }
-      }
-      
-      setError(errorMessage);
-    } finally {
-      setIsProcessing(false);
+      console.error("❌ Payment error:", error);
+      // Error handling is now managed by the usePaymentInit hook
+      // The error will be displayed in the UI automatically
     }
   };
 
@@ -174,6 +128,7 @@ const CheckoutForm = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading universities and cohorts...</p>
+          <p className="text-sm text-gray-500 mt-2">This may take a moment</p>
         </div>
       </div>
     );
@@ -183,20 +138,33 @@ const CheckoutForm = () => {
   if (dataError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-openSauce">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Failed to Load Data</h2>
           <p className="text-gray-600 mb-4">{dataError}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
-          >
-            Retry
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={refetchAll}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-colors"
+            >
+              Retry Loading Data
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
         </div>
       </div>
     );
   }
+
+  // Get available cohorts for the selected university
+  const availableCohorts = formData.university 
+    ? getCohortsByUniversity(formData.university) 
+    : cohorts;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-openSauce">
@@ -210,11 +178,27 @@ const CheckoutForm = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Error Message */}
-          {error && (
+          {paymentError && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
               <div className="flex items-center">
                 <span className="mr-2">⚠️</span>
-                {error}
+                <div>
+                  <p className="font-medium">Payment Error</p>
+                  <p>{paymentError}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {paymentSuccess && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+              <div className="flex items-center">
+                <span className="mr-2">✅</span>
+                <div>
+                  <p className="font-medium">Payment Initiated Successfully</p>
+                  <p>Redirecting to payment gateway...</p>
+                </div>
               </div>
             </div>
           )}
@@ -235,9 +219,12 @@ const CheckoutForm = () => {
               onChange={handleInputChange}
               placeholder="Enter your Email"
               required
+              disabled={paymentLoading}
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
-                error && !formData.email ? 'border-red-300' : 'border-gray-300'
-              }`}
+                paymentError && !formData.email 
+                  ? 'border-red-300' 
+                  : 'border-gray-300'
+              } ${paymentLoading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             />
           </div>
 
@@ -264,9 +251,12 @@ const CheckoutForm = () => {
                 required
                 maxLength={10}
                 pattern="[0-9]{9,10}"
+                disabled={paymentLoading}
                 className={`flex-1 px-4 py-3 border rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
-                  error && !formData.phone ? 'border-red-300' : 'border-gray-300'
-                }`}
+                  paymentError && !formData.phone 
+                    ? 'border-red-300' 
+                    : 'border-gray-300'
+                } ${paymentLoading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               />
             </div>
             <p className="text-xs text-gray-500 mt-1">
@@ -289,9 +279,16 @@ const CheckoutForm = () => {
                 value={formData.university}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none bg-white cursor-pointer"
+                disabled={paymentLoading || universities.length === 0}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none bg-white cursor-pointer ${
+                  paymentLoading || universities.length === 0 
+                    ? 'bg-gray-100 cursor-not-allowed' 
+                    : 'hover:border-gray-400'
+                }`}
               >
-                <option value="">Select University</option>
+                <option value="">
+                  {universities.length === 0 ? "Loading universities..." : "Select University"}
+                </option>
                 {universities.map((university) => (
                   <option key={university.id} value={university.id}>
                     {university.name}
@@ -331,10 +328,20 @@ const CheckoutForm = () => {
                 value={formData.cohort}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none bg-white cursor-pointer"
+                disabled={paymentLoading || availableCohorts.length === 0}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none bg-white cursor-pointer ${
+                  paymentLoading || availableCohorts.length === 0 
+                    ? 'bg-gray-100 cursor-not-allowed' 
+                    : 'hover:border-gray-400'
+                }`}
               >
-                <option value="">Select Cohort</option>
-                {(formData.university ? getCohortsByUniversity(formData.university) : cohorts).map((cohort) => (
+                <option value="">
+                  {availableCohorts.length === 0 
+                    ? (formData.university ? "No cohorts available for this university" : "Select University first")
+                    : "Select Cohort"
+                  }
+                </option>
+                {availableCohorts.map((cohort) => (
                   <option key={cohort.id} value={cohort.id.toString()}>
                     {cohort.name || cohort.title} - {formatPrice(cohort.current_price, cohort.currency)}
                   </option>
@@ -373,6 +380,11 @@ const CheckoutForm = () => {
                   <> • {getUniversityById(selectedCohort.university_id)?.name || 'Unknown University'}</>
                 )}
               </div>
+              {selectedCohort.original_price > selectedCohort.current_price && (
+                <div className="text-sm text-green-600 mt-1">
+                  You save: {formatPrice(selectedCohort.original_price - selectedCohort.current_price, selectedCohort.currency)}
+                </div>
+              )}
             </div>
           )}
 
@@ -390,24 +402,33 @@ const CheckoutForm = () => {
           {/* Pay Button */}
           <button
             type="submit"
-            disabled={isProcessing || !selectedCohort}
+            disabled={paymentLoading || !selectedCohort || dataLoading}
             className={`w-full font-semibold py-4 rounded-[24px] transition-colors duration-200 text-lg ${
-              isProcessing || !selectedCohort
+              paymentLoading || !selectedCohort || dataLoading
                 ? 'bg-gray-400 cursor-not-allowed text-white'
                 : 'bg-[#1C76FD] hover:bg-blue-600 text-white shadow-lg hover:shadow-xl'
             }`}
           >
-            {isProcessing ? (
+            {paymentLoading ? (
               <div className="flex items-center justify-center">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                 Redirecting to payment...
               </div>
+            ) : dataLoading ? (
+              'Loading...'
             ) : selectedCohort ? (
               `Pay ${formatPrice(selectedCohort.current_price, selectedCohort.currency)}`
             ) : (
               'Select Cohort to Continue'
             )}
           </button>
+
+          {/* Help Text */}
+          <div className="text-center">
+            <p className="text-xs text-gray-500">
+              Secure payment powered by Paystack
+            </p>
+          </div>
         </form>
       </div>
     </div>
