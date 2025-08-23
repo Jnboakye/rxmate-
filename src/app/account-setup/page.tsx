@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -18,7 +18,8 @@ interface AccountSetupFormData {
   university: string;
 }
 
-const RegistrationForm = () => {
+// Component that uses useSearchParams - needs to be wrapped in Suspense
+const RegistrationFormContent = () => {
   const searchParams = useSearchParams();
 
   // Get payment reference from URL or stored data
@@ -506,6 +507,25 @@ const RegistrationForm = () => {
         </form>
       </div>
     </div>
+  );
+};
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8 font-openSauce">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+      <p className="text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
+
+// Main component with Suspense wrapper
+const RegistrationForm = () => {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <RegistrationFormContent />
+    </Suspense>
   );
 };
 
