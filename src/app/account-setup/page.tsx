@@ -276,7 +276,7 @@ const RegistrationForm = () => {
         {isVerified && (
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6 text-center">
             <p className="font-medium">🎉 Payment Successful!</p>
-            <p className="text-sm">Let's complete your account setup</p>
+            <p className="text-sm">Let&apos;s complete your account setup</p>
             {paymentStatus && (
               <p className="text-xs mt-1">
                 Reference: {paymentReference} • Amount: {paymentStatus.currency}{" "}
@@ -291,7 +291,7 @@ const RegistrationForm = () => {
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg mb-6 text-center">
             <p className="font-medium">⚠️ No Payment Reference Found</p>
             <p className="text-sm">
-              If you haven't made a payment yet, please complete payment first
+              If you haven&apos;t made a payment yet, please complete payment first
             </p>
             <Link
               href="/checkout"
@@ -497,7 +497,7 @@ const RegistrationForm = () => {
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-1">Need Help?</p>
                 <p>
-                  If you're experiencing issues, please contact our support team
+                  If you&apos;re experiencing issues, please contact our support team
                   or try refreshing the page.
                 </p>
               </div>

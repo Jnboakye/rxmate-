@@ -70,6 +70,24 @@ export interface PaymentStatusResponse {
   };
 }
 
+// Add proper types for API error responses
+interface ApiErrorResponse {
+  message?: string;
+  detail?: string;
+  errors?: Record<string, string[]>;
+}
+
+// Add proper types for API responses
+interface UniversitiesResponse {
+  data?: University[];
+  universities?: University[];
+}
+
+interface CohortsResponse {
+  data?: Cohort[];
+  cohorts?: Cohort[];
+}
+
 class PaymentService {
   private api: AxiosInstance;
   private baseURL: string;
@@ -129,6 +147,17 @@ class PaymentService {
   private handleError(error: AxiosError): never {
     console.error("❌ API Error:", error);
 
+    // Add enhanced error handling for API responses
+    if (error.response && error.response.data) {
+      const errorData = error.response.data as ApiErrorResponse;
+      if (errorData.detail) {
+        throw new Error(errorData.detail);
+      }
+      if (errorData.message) {
+        throw new Error(errorData.message);
+      }
+    }
+
     if (error.code === "ECONNABORTED") {
       throw new Error(
         "Request timeout. Please check your internet connection and try again."
@@ -143,12 +172,13 @@ class PaymentService {
 
     if (error.response) {
       const { status, data } = error.response;
+      const errorData = data as ApiErrorResponse;
       let message: string;
 
       switch (status) {
         case 400:
           message =
-            (data as any)?.message ||
+            errorData?.message ||
             "Bad request. Please check your input and try again.";
           break;
         case 401:
@@ -162,7 +192,7 @@ class PaymentService {
           break;
         case 422:
           message =
-            (data as any)?.message ||
+            errorData?.message ||
             "Validation failed. Please check your details and try again.";
           break;
         case 500:
@@ -170,7 +200,7 @@ class PaymentService {
           break;
         default:
           message =
-            (data as any)?.message ||
+            errorData?.message ||
             `Server error (${status}). Please try again.`;
       }
 
@@ -204,29 +234,28 @@ class PaymentService {
   async getUniversities(): Promise<University[]> {
     try {
       const response = await this.api.get<
-        University[] | { data: University[]; universities: University[] }
+        University[] | UniversitiesResponse
       >("/universities");
 
       // Handle different response structures
       if (Array.isArray(response.data)) {
         return response.data;
-      } else if (
-        (response.data as any).data &&
-        Array.isArray((response.data as any).data)
-      ) {
-        return (response.data as any).data;
-      } else if (
-        (response.data as any).universities &&
-        Array.isArray((response.data as any).universities)
-      ) {
-        return (response.data as any).universities;
-      } else {
-        console.warn(
-          "Unexpected universities response structure:",
-          response.data
-        );
-        return [];
-      }
+      } 
+      
+      const responseData = response.data as UniversitiesResponse;
+      if (responseData.data && Array.isArray(responseData.data)) {
+        return responseData.data;
+      } 
+      
+      if (responseData.universities && Array.isArray(responseData.universities)) {
+        return responseData.universities;
+      } 
+      
+      console.warn(
+        "Unexpected universities response structure:",
+        response.data
+      );
+      return [];
     } catch (error) {
       console.error("Failed to fetch universities:", error);
       throw error;
@@ -239,7 +268,7 @@ class PaymentService {
   async getCohorts(): Promise<Cohort[]> {
     try {
       const response = await this.api.get<
-        Cohort[] | { data: Cohort[]; cohorts: Cohort[] }
+        Cohort[] | CohortsResponse
       >("/cohort");
 
       let cohorts: Cohort[] = [];
@@ -247,19 +276,16 @@ class PaymentService {
       // Handle different response structures
       if (Array.isArray(response.data)) {
         cohorts = response.data;
-      } else if (
-        (response.data as any).data &&
-        Array.isArray((response.data as any).data)
-      ) {
-        cohorts = (response.data as any).data;
-      } else if (
-        (response.data as any).cohorts &&
-        Array.isArray((response.data as any).cohorts)
-      ) {
-        cohorts = (response.data as any).cohorts;
       } else {
-        console.warn("Unexpected cohorts response structure:", response.data);
-        return [];
+        const responseData = response.data as CohortsResponse;
+        if (responseData.data && Array.isArray(responseData.data)) {
+          cohorts = responseData.data;
+        } else if (responseData.cohorts && Array.isArray(responseData.cohorts)) {
+          cohorts = responseData.cohorts;
+        } else {
+          console.warn("Unexpected cohorts response structure:", response.data);
+          return [];
+        }
       }
 
       // Normalize cohort data
@@ -461,8 +487,7 @@ class PaymentService {
         paymentData
       );
 
-      // Check if payment initialization was successful
-
+      // Updated response handling to match actual API response structure
       if (response.data && response.data.url) {
         console.log("🎉 Payment initialization successful!");
         console.log("🔗 Redirect URL:", response.data.url);
