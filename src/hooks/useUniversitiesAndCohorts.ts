@@ -2,6 +2,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import paymentService, { University, Cohort } from '@/lib/payment';
 
+// Define proper type for payment status
+interface PaymentStatusData {
+  status: string;
+  reference?: string;
+  amount?: number;
+  currency?: string;
+  customer?: {
+    email?: string;
+    phone?: string;
+  };
+  [key: string]: unknown; // Allow for additional properties
+}
+
+interface PaymentStatusResponse {
+  status: string;
+  data?: PaymentStatusData;
+  message?: string;
+}
+
 // Hook for fetching universities
 export function useUniversities() {
   const [universities, setUniversities] = useState<University[]>([]);
@@ -268,7 +287,7 @@ export function useUniversitiesWithCohorts() {
 
 // Hook for payment status checking and verification
 export function usePaymentStatus(paymentReference?: string) {
-  const [paymentStatus, setPaymentStatus] = useState<any>(null);
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatusData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isVerified, setIsVerified] = useState<boolean | null>(null);
@@ -284,10 +303,10 @@ export function usePaymentStatus(paymentReference?: string) {
     setError(null);
     try {
       console.log('💳 Checking payment status for reference:', refToCheck);
-      const response = await paymentService.getPaymentStatus(refToCheck);
+      const response: PaymentStatusResponse = await paymentService.getPaymentStatus(refToCheck);
       console.log('💳 Payment status response:', response);
       
-      setPaymentStatus(response.data);
+      setPaymentStatus(response.data || null);
       setIsVerified(response.status === 'success' && response.data?.status === 'success');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to check payment status';
