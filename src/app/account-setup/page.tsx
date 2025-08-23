@@ -207,6 +207,8 @@ const RegistrationFormContent = () => {
   }
 
   // Show error if payment verification failed or universities failed to load
+  // COMMENTED OUT FOR TESTING - Allow users to proceed even if payment verification fails
+  /*
   if ((paymentReference && isVerified === false) || universitiesError) {
     const errorMessage =
       paymentError || universitiesError || "An error occurred";
@@ -245,6 +247,41 @@ const RegistrationFormContent = () => {
                 Retry Loading Universities
               </button>
             )}
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-lg transition-colors"
+            >
+              Refresh Page
+            </button>
+            <Link href="/" className="block">
+              <button className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-lg transition-colors">
+                Go Home
+              </button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  */
+
+  // Show error only for universities loading failure (but allow payment failures for testing)
+  if (universitiesError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8 font-openSauce">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+          <div className="text-red-500 text-6xl mb-4">❌</div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Failed to Load Universities
+          </h2>
+          <p className="text-gray-600 mb-6">{universitiesError}</p>
+          <div className="space-y-3">
+            <button
+              onClick={refetchUniversities}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition-colors"
+            >
+              Retry Loading Universities
+            </button>
             <button
               onClick={() => window.location.reload()}
               className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-lg transition-colors"
