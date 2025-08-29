@@ -70,6 +70,20 @@ export interface PaymentStatusResponse {
   };
 }
 
+export interface AccountSetupRequest {
+  first_name: string;
+  last_name: string;
+  university_id: number;
+  whatsapp_contact: string;
+  reference: string;
+}
+
+export interface AccountSetupResponse {
+  message: string;
+  user_id?: string | number;
+  [key: string]: unknown;
+}
+
 // Add proper types for API error responses
 interface ApiErrorResponse {
   message?: string;
@@ -608,6 +622,64 @@ class PaymentService {
     sessionStorage.removeItem("payment_form_data");
     sessionStorage.removeItem("selected_cohort");
   }
+  
+  /**
+ * Setup user account after payment
+ */
+async setupAccount(accountData: AccountSetupRequest): Promise<AccountSetupResponse> {
+  console.log("🚀 Starting account setup process...");
+  console.log("📋 Account data received:", accountData);
+
+  // Test connection first
+  const connectionOk = await this.testConnection();
+  if (!connectionOk) {
+    throw new Error(
+      "Unable to connect to account service. Please check your internet connection and try again."
+    );
+  }
+
+  // Validate required data
+  const requiredFields = ['first_name', 'last_name', 'university_id', 'whatsapp_contact', 'reference'];
+  const missingFields = requiredFields.filter(field => {
+    const value = accountData[field as keyof AccountSetupRequest];
+    return !value || (typeof value === 'string' && !value.trim());
+  });
+
+  if (missingFields.length > 0) {
+    throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
+  }
+
+  // Validate university_id is a valid number
+  if (isNaN(accountData.university_id) || accountData.university_id <= 0) {
+    throw new Error("Invalid university ID provided");
+  }
+
+  // Validate WhatsApp number format
+  if (!accountData.whatsapp_contact.match(/^\+233[0-9]{9}$/)) {
+    throw new Error("Invalid WhatsApp contact format. Expected format: +233XXXXXXXXX");
+  }
+
+  console.log("📤 Final account setup data to be sent:", accountData);
+
+  try {
+    const response = await this.api.post<AccountSetupResponse>(
+      "/setup-account",
+      accountData
+    );
+
+    if (response.data) {
+      console.log("🎉 Account setup successful!");
+      console.log("📥 Response:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid response structure:", response.data);
+      throw new Error("Account setup failed - no response data received");
+    }
+  } catch (error) {
+    console.error("❌ Account setup error:", error);
+    throw error;
+  }
+}
 }
 
 // Export singleton instance as default

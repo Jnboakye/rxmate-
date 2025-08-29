@@ -56,11 +56,12 @@ const RegistrationFormContent = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>("");
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   // Pre-populate form data when payment is verified
   useEffect(() => {
     if (isVerified && paymentStatus) {
-      console.log("🎉 Payment verified, pre-populating form data");
+      console.log("Payment verified, pre-populating form data");
 
       // Pre-populate WhatsApp number from payment data
       if (paymentStatus.customer?.phone) {
@@ -135,6 +136,7 @@ const RegistrationFormContent = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitError("");
+    setSubmitSuccess(false);
 
     // Validate form data
     const validationError = validateForm();
@@ -145,45 +147,71 @@ const RegistrationFormContent = () => {
     }
 
     try {
-      console.log("🚀 Account setup form submitted:", formData);
-      console.log("💳 Payment reference:", paymentReference);
-      console.log("💳 Payment status:", paymentStatus);
+      console.log("Account setup form submitted:", formData);
+      console.log("Payment reference:", paymentReference);
 
-      // Prepare account creation data
+      // Validate we have a payment reference
+      if (!paymentReference) {
+        throw new Error("No payment reference found. Please complete payment first.");
+      }
+
+      // Prepare account creation data according to API schema
       const accountData = {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        whatsappNumber: `+233${formData.whatsappNumber}`,
-        university: formData.university,
-        email: paymentStatus?.customer?.email,
-        paymentReference: paymentReference,
-        cohortId: paymentService.getStoredPaymentData()?.formData?.cohort_id,
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        university_id: parseInt(formData.university, 10),
+        whatsapp_contact: `+233${formData.whatsappNumber}`,
+        reference: paymentReference,
       };
 
-      console.log("📤 Account creation data:", accountData);
+      console.log("Account creation data:", accountData);
 
-      // Here you would typically call your account creation API
-      // For now, we'll simulate the process
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Validate university_id is a valid number
+      if (isNaN(accountData.university_id)) {
+        throw new Error("Please select a valid university");
+      }
+
+      // Call the backend API
+      const response = await paymentService.setupAccount(accountData);
 
       // Clear stored payment data since account is now created
       paymentService.clearStoredPaymentData();
 
-      // Redirect to success page or app download
-      console.log("✅ Account created successfully!");
-      alert(
-        "Account created successfully! You will receive setup instructions via email."
-      );
-
-      // Optionally redirect to app download or success page
-      // window.location.href = '/download-app';
-    } catch (error) {
-      console.error("❌ Account creation error:", error);
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : "Failed to create account. Please try again."
-      );
+      // Show success
+      console.log("Account created successfully!", response);
+      setSubmitSuccess(true);
+      
+      // Optionally redirect after a delay
+      setTimeout(() => {
+        window.location.href = '/download-app';
+      }, 3000);
+      
+    } catch (error: unknown) {
+      console.error("Account creation error:", error);
+      
+      let errorMessage = "Failed to create account. Please try again.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      // Handle specific API errors
+      if (error && typeof error === 'object' && 'response' in error) {
+        const apiError = error as any;
+        if (apiError.response?.data?.message) {
+          errorMessage = apiError.response.data.message;
+        } else if (apiError.response?.data?.detail) {
+          errorMessage = apiError.response.data.detail;
+        } else if (apiError.response?.status === 400) {
+          errorMessage = "Invalid data provided. Please check your information and try again.";
+        } else if (apiError.response?.status === 409) {
+          errorMessage = "Account already exists or payment reference already used.";
+        } else if (apiError.response?.status >= 500) {
+          errorMessage = "Server error. Please try again in a few minutes.";
+        }
+      }
+      
+      setSubmitError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -206,71 +234,12 @@ const RegistrationFormContent = () => {
     );
   }
 
-  // Show error if payment verification failed or universities failed to load
-  // COMMENTED OUT FOR TESTING - Allow users to proceed even if payment verification fails
-  /*
-  if ((paymentReference && isVerified === false) || universitiesError) {
-    const errorMessage =
-      paymentError || universitiesError || "An error occurred";
-    const isPaymentError = paymentReference && isVerified === false;
-
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8 font-openSauce">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
-          <div className="text-red-500 text-6xl mb-4">❌</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            {isPaymentError
-              ? "Payment Verification Failed"
-              : "Failed to Load Data"}
-          </h2>
-          <p className="text-gray-600 mb-6">{errorMessage}</p>
-          <div className="space-y-3">
-            {isPaymentError ? (
-              <>
-                <button
-                  onClick={() => recheckPayment()}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition-colors"
-                >
-                  Retry Payment Verification
-                </button>
-                <Link href="/checkout" className="block">
-                  <button className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-lg transition-colors">
-                    Make New Payment
-                  </button>
-                </Link>
-              </>
-            ) : (
-              <button
-                onClick={refetchUniversities}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition-colors"
-              >
-                Retry Loading Universities
-              </button>
-            )}
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-lg transition-colors"
-            >
-              Refresh Page
-            </button>
-            <Link href="/" className="block">
-              <button className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-lg transition-colors">
-                Go Home
-              </button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  */
-
   // Show error only for universities loading failure (but allow payment failures for testing)
   if (universitiesError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8 font-openSauce">
         <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
-          <div className="text-red-500 text-6xl mb-4">❌</div>
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
             Failed to Load Universities
           </h2>
@@ -293,6 +262,27 @@ const RegistrationFormContent = () => {
                 Go Home
               </button>
             </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show success screen
+  if (submitSuccess) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8 font-openSauce">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+          <div className="text-green-500 text-6xl mb-4">✅</div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Account Created Successfully!
+          </h2>
+          <p className="text-gray-600 mb-6">
+            You will receive setup instructions via email. Redirecting to app download...
+          </p>
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mr-2"></div>
+            <span className="text-sm text-gray-500">Redirecting...</span>
           </div>
         </div>
       </div>
@@ -517,7 +507,6 @@ const RegistrationFormContent = () => {
             >
               Skip for now and download app →
             </Link>
-
           </div>
         </form>
       </div>
