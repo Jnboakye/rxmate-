@@ -6,7 +6,7 @@ export interface PaymentFormData {
   email: string;
   phone: string;
   cohort: string;
-  university: string;
+  university?: string;
 }
 
 export interface University {
@@ -417,8 +417,7 @@ class PaymentService {
     if (
       !formData.email ||
       !formData.phone ||
-      !formData.cohort ||
-      !formData.university
+      !formData.cohort
     ) {
       const missingFields = [];
       if (!formData.email) missingFields.push("email");
@@ -468,7 +467,7 @@ class PaymentService {
       phone: phoneNumber,
       email: formData.email.trim().toLowerCase(),
       cohort_id: parseInt(formData.cohort, 10),
-      university_id: parseInt(formData.university, 10),
+        ...(formData.university && { university_id: parseInt(formData.university, 10) }), // changes done here
       ...(callbackUrl && { callback_url: callbackUrl }),
     };
 

@@ -10,7 +10,7 @@ const CheckoutForm = () => {
     email: "",
     phone: "",
     cohort: "",
-    university: "",
+    university: "", // Keep this for backend compatibility but won't be shown
   });
 
   const [selectedCohort, setSelectedCohort] = useState<Cohort | null>(null);
@@ -41,8 +41,20 @@ const CheckoutForm = () => {
       const cohortId = parseInt(formData.cohort, 10);
       const cohort = getCohortById(cohortId);
       setSelectedCohort(cohort || null);
+      
+      // Auto-set university based on selected cohort
+      if (cohort && cohort.university_id) {
+        setFormData(prev => ({
+          ...prev,
+          university: cohort.university_id ? String(cohort.university_id) : ""
+        }));
+      }
     } else {
       setSelectedCohort(null);
+      setFormData(prev => ({
+        ...prev,
+        university: ""
+      }));
     }
   }, [formData.cohort, getCohortById]);
 
@@ -54,15 +66,6 @@ const CheckoutForm = () => {
       ...prev,
       [name]: value,
     }));
-
-    // If university changes, reset cohort selection
-    if (name === 'university') {
-      setFormData(prev => ({
-        ...prev,
-        cohort: "",
-      }));
-      setSelectedCohort(null);
-    }
     
     // Clear payment error when user starts typing
     if (paymentError) {
@@ -104,7 +107,11 @@ const CheckoutForm = () => {
       console.log('🚀 Initiating payment with callback URL:', callbackUrl);
       
       // Initiate payment using the improved service
-      await initiatePayment(formData, selectedCohort, callbackUrl);
+      await initiatePayment(
+        { ...formData, university: formData.university ?? "" },
+        selectedCohort,
+        callbackUrl
+      );
       
       // The payment service will automatically redirect the user to the payment gateway
       // If we reach here without being redirected, something went wrong
@@ -128,7 +135,7 @@ const CheckoutForm = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-openSauce">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading universities and cohorts...</p>
+          <p className="text-gray-600">Loading cohorts...</p>
           <p className="text-sm text-gray-500 mt-2">This may take a moment</p>
         </div>
       </div>
@@ -161,11 +168,6 @@ const CheckoutForm = () => {
       </div>
     );
   }
-
-  // Get available cohorts for the selected university
-  const availableCohorts = formData.university 
-    ? getCohortsByUniversity(formData.university) 
-    : cohorts;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-openSauce">
@@ -265,56 +267,7 @@ const CheckoutForm = () => {
             </p>
           </div>
 
-          {/* University Field */}
-          <div>
-            <label
-              htmlFor="university"
-              className="block text-sm font-medium text-[#00000099] mb-2"
-            >
-              University *
-            </label>
-            <div className="relative">
-              <select
-                id="university"
-                name="university"
-                value={formData.university}
-                onChange={handleInputChange}
-                required
-                disabled={paymentLoading || universities.length === 0}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none bg-white cursor-pointer ${
-                  paymentLoading || universities.length === 0 
-                    ? 'bg-gray-100 cursor-not-allowed' 
-                    : 'hover:border-gray-400'
-                }`}
-              >
-                <option value="">
-                  {universities.length === 0 ? "Loading universities..." : "Select University"}
-                </option>
-                {universities.map((university) => (
-                  <option key={university.id} value={university.id}>
-                    {university.name}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
-                <svg
-                  className="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Cohort Field */}
+          {/* Cohort Field - Now shows all cohorts */}
           <div>
             <label
               htmlFor="cohort"
@@ -329,24 +282,28 @@ const CheckoutForm = () => {
                 value={formData.cohort}
                 onChange={handleInputChange}
                 required
-                disabled={paymentLoading || availableCohorts.length === 0}
+                disabled={paymentLoading || cohorts.length === 0}
                 className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none bg-white cursor-pointer ${
-                  paymentLoading || availableCohorts.length === 0 
+                  paymentLoading || cohorts.length === 0 
                     ? 'bg-gray-100 cursor-not-allowed' 
                     : 'hover:border-gray-400'
                 }`}
               >
                 <option value="">
-                  {availableCohorts.length === 0 
-                    ? (formData.university ? "No cohorts available for this university" : "Select University first")
-                    : "Select Cohort"
-                  }
+                  {cohorts.length === 0 ? "Loading cohorts..." : "Select Cohort"}
                 </option>
-                {availableCohorts.map((cohort) => (
-                  <option key={cohort.id} value={cohort.id.toString()}>
-                    {cohort.name || cohort.title} - {formatPrice(cohort.current_price, cohort.currency)}
-                  </option>
-                ))}
+                {cohorts.map((cohort) => {
+                  const universityName = cohort.university_id 
+                    ? getUniversityById(cohort.university_id)?.name || 'Unknown University'
+                    : '';
+                  
+                  return (
+                    <option key={cohort.id} value={cohort.id.toString()}>
+                      {cohort.name || cohort.title} - {formatPrice(cohort.current_price, cohort.currency)}
+                      {universityName && ` (${universityName})`}
+                    </option>
+                  );
+                })}
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
                 <svg
