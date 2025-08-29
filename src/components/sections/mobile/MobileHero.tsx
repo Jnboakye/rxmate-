@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function MobileHero() {
   return (
-    <div className="min-h-screen bg-gray-50 block sm:block md:hidden lg:hidden xl:hidden font-openSauce">
+    <div className="min-h-screen bg-white block sm:block md:hidden lg:hidden xl:hidden font-openSauce">
       {/* Hero Section */}
       <main className="px-8 py-16">
         {/* Hero Text */}

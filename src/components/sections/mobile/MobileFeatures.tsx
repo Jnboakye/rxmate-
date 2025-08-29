@@ -3,6 +3,9 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Wrapper from "@/components/shared/wrapper";
 import phonemockup from "@/assets/phonemockup.svg";
+import phonemockup2 from "@/assets/phonemockup2.svg";
+import phonemockup3 from "@/assets/phonemockup3.svg";
+
 
 const Features = () => {
   const [activeTab, setActiveTab] = useState("Topic Overview");
@@ -13,7 +16,7 @@ const Features = () => {
       title: "Answer Explanations",
       description:
         "Learn from your mistakes with detailed explanations for every question.",
-      image: phonemockup,
+      image: phonemockup2,
     },
     {
       name: "Topic Overview",
@@ -27,7 +30,7 @@ const Features = () => {
       title: "Configurable Question Sets",
       description:
         "Take control of your learning with customizable question sets.",
-      image: phonemockup,
+      image: phonemockup3,
     },
   ];
 

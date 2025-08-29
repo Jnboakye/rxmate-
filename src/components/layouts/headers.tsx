@@ -15,17 +15,20 @@ const Header = () => {
         <div className="flex items-center justify-between font-openSauce ">
 
             {/* Rxmate Text icon */}
-          <div className="text-[#1C76FD] font-bold text-xl w-[76px] h-[25px]">
+          <a 
+            href="#hero" 
+            className="text-[#1C76FD] font-bold text-xl w-[76px] h-[25px] cursor-pointer hover:opacity-80 transition-opacity"
+          >
             Rxmate
-          </div>
+          </a>
 
           {/* Navigation */}
-          <nav className="hidden md:flex gap-8 text-[#00000080] text-sm font-medium">
+          <nav className="hidden md:flex gap-8 text-[#00000080] text-sm font-400 ml-30">
+            <a href="#hero" className="hover:text-[#1C76FD]">
+              About
+            </a>
             <a href="#features" className="hover:text-[#1C76FD]">
               Features
-            </a>
-            <a href="#about" className="hover:text-[#1C76FD]">
-              About
             </a>
             <a href="#faqs" className="hover:text-[#1C76FD]">
               FAQs
@@ -38,7 +41,7 @@ const Header = () => {
           {/* Download App Button */}
           <a
             href="#download"
-            className="flex justify-between items-center bg-[#1C76FD] text-white px-4 py-2 rounded-[12px] text-sm font-bold hover:bg-blue-700 transition-all w-[201px]"
+            className="flex justify-between items-center bg-[#A559E7] text-white px-4 py-2 rounded-[12px] text-sm font-bold hover:bg-blue-700 transition-all w-[201px]"
           >
             <div className="flex-shrink-0">
               <Image src={appleicon} alt="Apple" width={20} height={20} />

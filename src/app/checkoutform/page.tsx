@@ -1,3 +1,4 @@
+//CheckoutForm.tsx
 "use client";
 import React, { useState, useEffect } from "react";
 import MobileLogo from "@/components/layouts/rxmateicon";
@@ -173,7 +174,7 @@ const CheckoutForm = () => {
 
       <div className="p-8 w-full max-w-md">
         <h3 className="text-3xl font-bold text-gray-900 text-left mb-8">
-          Personal Information
+          Payment Information
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-6">

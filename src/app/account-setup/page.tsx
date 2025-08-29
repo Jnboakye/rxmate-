@@ -368,7 +368,7 @@ const RegistrationFormContent = () => {
           {/* First Name */}
           <div>
             <label className="block text-sm font-medium text-[#00000099] mb-2">
-              First Name *
+              First Name 
             </label>
             <input
               type="text"
@@ -386,7 +386,7 @@ const RegistrationFormContent = () => {
           {/* Last Name */}
           <div>
             <label className="block text-sm font-medium text-[#00000099] mb-2">
-              Last Name *
+              Last Name 
             </label>
             <input
               type="text"
@@ -404,7 +404,7 @@ const RegistrationFormContent = () => {
           {/* WhatsApp Number */}
           <div>
             <label className="block text-sm font-medium text-[#00000099] mb-2">
-              WhatsApp number *
+              WhatsApp number 
             </label>
             <div className="flex">
               <div className="flex items-center px-3 py-3 border border-r-0 border-gray-300 rounded-l-lg bg-gray-50">
@@ -427,15 +427,12 @@ const RegistrationFormContent = () => {
                 pattern="[0-9]{9,10}"
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Enter your WhatsApp number for important updates
-            </p>
           </div>
 
           {/* University Dropdown */}
           <div>
             <label className="block text-sm font-medium text-[#00000099] mb-2">
-              University *
+              University 
             </label>
             <div className="relative">
               <button
@@ -496,10 +493,10 @@ const RegistrationFormContent = () => {
           <button
             type="submit"
             disabled={isSubmitting || universities.length === 0}
-            className={`w-full font-semibold py-3 px-6 rounded-lg transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 outline-none ${
+            className={`w-full font-semibold py-3 px-6 rounded-[24px] transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 outline-none ${
               isSubmitting || universities.length === 0
                 ? "bg-gray-400 cursor-not-allowed text-white"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
+                : "bg-[#1C76FD] text-white"
             }`}
           >
             {isSubmitting ? (
@@ -508,7 +505,7 @@ const RegistrationFormContent = () => {
                 Creating Account...
               </div>
             ) : (
-              "Complete Setup"
+              "Continue"
             )}
           </button>
 
@@ -520,26 +517,7 @@ const RegistrationFormContent = () => {
             >
               Skip for now and download app →
             </Link>
-            <Link
-              href="/checkout"
-              className="block text-gray-500 hover:text-gray-700 text-sm transition-colors"
-            >
-              ← Back to payment
-            </Link>
-          </div>
 
-          {/* Help section */}
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-            <div className="flex items-start">
-              <span className="text-blue-600 mr-2 mt-0.5">💡</span>
-              <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">Need Help?</p>
-                <p>
-                  If you&apos;re experiencing issues, please contact our support team
-                  or try refreshing the page.
-                </p>
-              </div>
-            </div>
           </div>
         </form>
       </div>

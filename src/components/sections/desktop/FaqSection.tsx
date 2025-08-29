@@ -34,7 +34,7 @@ const faqs = [
 
 export default function FaqSection() {
   return (
-    <section className="max-w-2xl mx-auto px-4 py-16">
+    <section id="faqs" className="max-w-2xl mx-auto px-4 py-16 font-openSauce">
       <h2 className="text-3xl font-bold text-center mb-2">Your Questions, Answered</h2>
       <p className="text-center text-gray-500 mb-10">
         We&apos;re here to help you learn how to use the Rxmate platform and answer any questions you may have.
@@ -46,8 +46,8 @@ export default function FaqSection() {
         {faqs.map((faq, index) => (
           <Disclosure key={index}>
             {({ open }) => (
-              <div className="border border-gray-200 rounded-xl px-4 py-3">
-                <Disclosure.Button className="flex justify-between w-full text-left font-medium text-gray-900">
+              <div className="border border-gray-200 bg-[#FBFBFB] rounded-xl px-4 py-3">
+                <Disclosure.Button className="flex justify-between w-full text-left font-400 text-[#000000CC]">
                   {faq.question}
                   <ChevronDownIcon
                     className={`w-5 h-5 transform transition-transform duration-200 ${
@@ -55,7 +55,7 @@ export default function FaqSection() {
                     }`}
                   />
                 </Disclosure.Button>
-                <Disclosure.Panel className="mt-2 text-gray-600 text-sm">{faq.answer}</Disclosure.Panel>
+                <Disclosure.Panel className="mt-2 text-[#00000099] text-sm">{faq.answer}</Disclosure.Panel>
               </div>
             )}
           </Disclosure>

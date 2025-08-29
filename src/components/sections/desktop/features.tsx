@@ -7,11 +7,15 @@ import phoneimage from "@/assets/phonemockup.svg";
 import card1 from "@/assets/card1.svg";
 import card2 from "@/assets/card2.svg";
 import card3 from "@/assets/card3.svg";
+import { section } from "framer-motion/client";
 
 export default function Features() {
   return (
-    <Wrapper>
-      <div className="w-full bg-white py-16 px-4 md:px-12 font-openSauce hidden md:block">
+    <section
+      id="features"
+      className="w-full bg-white py-16 px-4 md:px-12 font-openSauce hidden md:block"
+    >
+      <Wrapper>
         <div className="max-w-7xl mx-auto text-center">
           <h2 className="text-[40px] md:text-4xl font-bold mb-15">
             Discover Features Built for Efficient Learning
@@ -23,7 +27,7 @@ export default function Features() {
               <Image
                 src={phoneimage}
                 alt="Phone Screenshot"
-                width={271} 
+                width={271}
                 height={553}
                 className="w-[271px] h-[553px] drop-shadow-lg"
               />
@@ -33,8 +37,8 @@ export default function Features() {
             <div className="flex-1 space-y-8 text-left">
               <p className="text-gray-600 text-lg">
                 With personalized quizzes, instant feedback, and detailed
-                explanations, you&apos;ll identify your strengths, improve on your
-                weaknesses, and track your progress over time.
+                explanations, you&apos;ll identify your strengths, improve on
+                your weaknesses, and track your progress over time.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -64,7 +68,7 @@ export default function Features() {
             </div>
           </div>
         </div>
-      </div>
-    </Wrapper>
+      </Wrapper>
+    </section>
   );
 }
